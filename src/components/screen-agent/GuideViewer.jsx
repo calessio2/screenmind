@@ -12,7 +12,8 @@ export default function GuideViewer({ process, stepIndex, onStepChange }) {
   }
 
   const steps = process.steps;
-  const step = steps[stepIndex] || steps[0];
+  const currentStep = typeof stepIndex === "number" ? stepIndex : 0;
+  const step = steps[currentStep] || steps[0];
 
   return (
     <div className="flex flex-col h-full bg-zinc-950 overflow-hidden">
@@ -22,7 +23,7 @@ export default function GuideViewer({ process, stepIndex, onStepChange }) {
           <h3 className="text-sm font-medium text-zinc-100 truncate">{process.title}</h3>
         </div>
         <p className="text-[11px] text-zinc-600">
-          Paso {stepIndex + 1} de {steps.length}
+          Paso {currentStep + 1} de {steps.length}
           {process.software && <span> · {process.software}</span>}
         </p>
       </div>
@@ -44,8 +45,9 @@ export default function GuideViewer({ process, stepIndex, onStepChange }) {
 
       <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06]">
         <button
-          onClick={() => onStepChange(Math.max(0, stepIndex - 1))}
-          disabled={stepIndex === 0}
+          type="button"
+          onClick={() => onStepChange(Math.max(0, currentStep - 1))}
+          disabled={currentStep === 0}
           className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -54,15 +56,17 @@ export default function GuideViewer({ process, stepIndex, onStepChange }) {
         <div className="flex gap-1.5">
           {steps.map((_, i) => (
             <button
+              type="button"
               key={i}
               onClick={() => onStepChange(i)}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${i === stepIndex ? 'bg-white' : 'bg-zinc-800 hover:bg-zinc-700'}`}
+              className={`w-1.5 h-1.5 rounded-full transition-colors ${i === currentStep ? 'bg-white' : 'bg-zinc-800 hover:bg-zinc-700'}`}
             />
           ))}
         </div>
         <button
-          onClick={() => onStepChange(Math.min(steps.length - 1, stepIndex + 1))}
-          disabled={stepIndex === steps.length - 1}
+          type="button"
+          onClick={() => onStepChange(Math.min(steps.length - 1, currentStep + 1))}
+          disabled={currentStep === steps.length - 1}
           className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-200 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
         >
           Siguiente
