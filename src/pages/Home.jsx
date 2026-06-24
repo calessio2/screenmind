@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import ConversationSidebar from "@/components/screen-agent/ConversationSidebar";
 import ChatPanel from "@/components/screen-agent/ChatPanel";
 import DynamicPanel from "@/components/screen-agent/DynamicPanel";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Monitor, MonitorOff } from "lucide-react";
 
 export default function Home() {
   const [conversations, setConversations] = useState([]);
@@ -292,6 +292,7 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
       });
       setStream(mediaStream);
       setIsSharing(true);
+      setPanelMode("screen");
       setScreenshotRequested(false);
       mediaStream.getVideoTracks()[0].onended = () => {
         setStream(null);
@@ -372,7 +373,7 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
             />
           </div>
 
-          <div className="flex-1 min-h-0 h-[42vh] lg:h-auto bg-zinc-950 p-px">
+          <div className="flex-1 min-h-0 h-[42vh] lg:h-auto bg-zinc-950 p-px relative">
             <DynamicPanel
               mode={panelMode}
               process={activeProcess}
@@ -386,6 +387,17 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
               onCapture={captureAndAnalyze}
               isCapturing={isCapturing}
             />
+            <button
+              onClick={() => isSharing ? stopSharing() : startSharing()}
+              className={`absolute bottom-4 right-4 z-20 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                isSharing
+                  ? "bg-red-500/90 text-white hover:bg-red-500"
+                  : "bg-white/90 text-zinc-950 hover:bg-white"
+              }`}
+            >
+              {isSharing ? <MonitorOff className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+              {isSharing ? "Detener pantalla" : "Compartir pantalla"}
+            </button>
           </div>
         </div>
       )}
