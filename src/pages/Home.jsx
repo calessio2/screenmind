@@ -342,7 +342,7 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
     <div className="h-screen flex bg-zinc-950 text-zinc-100">
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-3 left-3 z-50 bg-zinc-800 p-2 rounded-lg text-zinc-300"
+        className="lg:hidden fixed top-3 left-3 z-50 bg-zinc-900/80 backdrop-blur p-2 rounded-lg text-zinc-300 border border-zinc-800"
       >
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
@@ -360,30 +360,30 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
       </div>
 
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-30 lg:hidden" />
+        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden" />
       )}
 
       {!activeConvId ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center px-6">
-            <div className="w-20 h-20 mx-auto rounded-2xl bg-zinc-800/60 flex items-center justify-center mb-6">
-              <span className="text-4xl">🎓</span>
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-zinc-950 to-zinc-900">
+          <div className="text-center px-6 max-w-md">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-8">
+              <span className="text-3xl">🎓</span>
             </div>
-            <h1 className="text-2xl font-bold text-zinc-100 mb-2">Tutor de Adopción Digital</h1>
-            <p className="text-zinc-500 mb-6 max-w-sm mx-auto text-sm">
+            <h1 className="text-3xl font-semibold text-zinc-100 mb-3 tracking-tight">Tutor de Adopción Digital</h1>
+            <p className="text-zinc-500 mb-8 text-sm leading-relaxed">
               Tu asistente inteligente para software y procesos corporativos. Aprendé, consultá y recibí soporte en tiempo real.
             </p>
             <button
               onClick={createConversation}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium text-sm transition-colors"
+              className="bg-white text-zinc-950 hover:bg-zinc-200 px-6 py-2.5 rounded-xl font-medium text-sm transition-colors"
             >
               Iniciar nueva sesión
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col lg:flex-row gap-3 p-3 lg:pl-3 pl-3 pt-14 lg:pt-3 min-h-0">
-          <div className="lg:w-[420px] w-full flex-shrink-0 min-h-0 h-[45vh] lg:h-auto">
+        <div className="flex-1 flex flex-col lg:flex-row gap-px bg-zinc-900 min-h-0 pt-14 lg:pt-0">
+          <div className="lg:w-[400px] w-full flex-shrink-0 min-h-0 h-[42vh] lg:h-auto bg-zinc-950">
             <ChatPanel
               messages={messages}
               onSendMessage={sendMessage}
@@ -392,7 +392,7 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
             />
           </div>
 
-          <div className="flex-1 min-h-0 h-[45vh] lg:h-auto">
+          <div className="flex-1 min-h-0 h-[42vh] lg:h-auto bg-zinc-950 p-px">
             <DynamicPanel
               mode={panelMode}
               process={activeProcess}

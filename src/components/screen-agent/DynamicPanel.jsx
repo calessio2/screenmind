@@ -23,26 +23,26 @@ export default function DynamicPanel({ mode, process, stepIndex, onStepChange, s
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-zinc-900 to-zinc-950 rounded-xl p-6">
-      <div className="w-20 h-20 rounded-2xl bg-zinc-800/60 flex items-center justify-center mb-6">
-        <Sparkles className="w-10 h-10 text-zinc-500" />
+    <div className="flex flex-col items-center justify-center h-full bg-zinc-950 p-6">
+      <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-6">
+        <Sparkles className="w-7 h-7 text-zinc-700" />
       </div>
       <h3 className="text-zinc-300 font-medium text-sm mb-2">Panel del Tutor</h3>
-      <p className="text-zinc-500 text-xs text-center max-w-xs leading-relaxed">
+      <p className="text-zinc-600 text-xs text-center max-w-xs leading-relaxed">
         Las guías visuales y capturas de pantalla aparecerán aquí. Escribí tu consulta en el chat para comenzar.
       </p>
-      <div className="flex gap-6 mt-8">
+      <div className="flex gap-8 mt-10">
         <div className="flex flex-col items-center gap-2">
-          <div className="w-12 h-12 rounded-xl bg-zinc-800/60 flex items-center justify-center">
-            <BookOpen className="w-6 h-6 text-zinc-500" />
+          <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-zinc-700" />
           </div>
-          <span className="text-[10px] text-zinc-600">Guías visuales</span>
+          <span className="text-[10px] text-zinc-700">Guías visuales</span>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="w-12 h-12 rounded-xl bg-zinc-800/60 flex items-center justify-center">
-            <Monitor className="w-6 h-6 text-zinc-500" />
+          <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+            <Monitor className="w-5 h-5 text-zinc-700" />
           </div>
-          <span className="text-[10px] text-zinc-600">Pantalla en vivo</span>
+          <span className="text-[10px] text-zinc-700">Pantalla en vivo</span>
         </div>
       </div>
     </div>

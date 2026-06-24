@@ -13,16 +13,16 @@ export default function ScreenPreview({ stream, isSharing, screenshotRequested, 
 
   if (!isSharing) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-zinc-900 to-zinc-950 rounded-xl">
+      <div className="flex flex-col items-center justify-center h-full bg-zinc-950">
         {screenshotRequested && (
-          <div className="mb-4 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <div className="mb-5 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
             <p className="text-amber-400 text-xs text-center">
               📸 El tutor solicitó ver tu pantalla
             </p>
           </div>
         )}
-        <div className="w-20 h-20 rounded-2xl bg-zinc-800/60 flex items-center justify-center mb-6">
-          <Monitor className="w-10 h-10 text-zinc-500" />
+        <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-6">
+          <Monitor className="w-7 h-7 text-zinc-700" />
         </div>
         <p className="text-zinc-400 text-sm mb-2 text-center max-w-xs">
           {screenshotRequested
@@ -30,12 +30,12 @@ export default function ScreenPreview({ stream, isSharing, screenshotRequested, 
             : "Compartí tu pantalla para recibir asistencia en tiempo real."}
         </p>
         <div className="flex items-center gap-1.5 mb-6">
-          <ShieldCheck className="w-3.5 h-3.5 text-zinc-600" />
-          <span className="text-[10px] text-zinc-600">Las capturas no se guardan en la base de datos</span>
+          <ShieldCheck className="w-3.5 h-3.5 text-zinc-700" />
+          <span className="text-[10px] text-zinc-700">Las capturas no se guardan en la base de datos</span>
         </div>
         <Button
           onClick={onStartSharing}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium"
+          className="bg-white text-zinc-950 hover:bg-zinc-200 px-6 py-2.5 rounded-xl font-medium"
         >
           <Monitor className="w-4 h-4 mr-2" />
           Compartir pantalla
@@ -45,8 +45,8 @@ export default function ScreenPreview({ stream, isSharing, screenshotRequested, 
   }
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-900/80 border-b border-zinc-800">
+    <div className="flex flex-col h-full bg-zinc-950 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <span className="text-xs text-zinc-400 font-medium">Pantalla en vivo</span>
@@ -57,7 +57,7 @@ export default function ScreenPreview({ stream, isSharing, screenshotRequested, 
             variant="ghost"
             onClick={onCapture}
             disabled={isCapturing}
-            className="text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs h-7 px-2"
+            className="text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] text-xs h-7 px-2"
           >
             <Camera className="w-3.5 h-3.5 mr-1" />
             {isCapturing ? "Analizando..." : "Capturar y analizar"}

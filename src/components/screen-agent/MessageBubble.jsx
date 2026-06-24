@@ -6,25 +6,25 @@ export default function MessageBubble({ message }) {
   const isUser = message.role === "user";
 
   return (
-    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        isUser ? "bg-blue-600/20 text-blue-400" : "bg-emerald-600/20 text-emerald-400"
+    <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+        isUser ? "bg-white/[0.08] text-zinc-300" : "bg-white/[0.06] text-zinc-400"
       }`}>
-        {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+        {isUser ? <User className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
       </div>
-      <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+      <div className={`max-w-[80%] px-3.5 py-2.5 ${
         isUser
-          ? "bg-blue-600 text-white rounded-tr-md"
-          : "bg-zinc-800 text-zinc-100 rounded-tl-md"
+          ? "bg-white text-zinc-950 rounded-2xl rounded-tr-md"
+          : "bg-white/[0.04] text-zinc-200 rounded-2xl rounded-tl-md"
       }`}>
         {message.guide_ref && !isUser && (
-          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-emerald-400 mb-1">
+          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-emerald-400 mb-1.5">
             <BookOpen className="w-3 h-3" />
             Guía mostrada en el panel →
           </span>
         )}
         {message.request_screenshot && !isUser && (
-          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-400 mb-1">
+          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-400 mb-1.5">
             <Camera className="w-3 h-3" />
             El tutor solicita ver tu pantalla →
           </span>
