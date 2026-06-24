@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
-import { Target, CheckCircle2, Circle, ChevronDown, ChevronRight, Calendar, TrendingUp, ArrowLeft, Award } from "lucide-react";
+import { Target, CheckCircle2, Circle, ChevronDown, ChevronRight, Calendar, TrendingUp, ArrowLeft, Award, BarChart3 } from "lucide-react";
+import UsageStats from "@/components/screen-agent/UsageStats";
 
 const getProgress = (goal) => {
   if (!goal.steps || goal.steps.length === 0) return 0;
@@ -70,6 +71,14 @@ export default function MyGoals() {
             <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Mis Objetivos</h1>
             <p className="text-xs text-zinc-600">Seguimiento de tu adopción digital</p>
           </div>
+        </div>
+
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart3 className="w-4 h-4 text-zinc-500" />
+            <h2 className="text-sm font-medium text-zinc-300">Uso del tutor</h2>
+          </div>
+          <UsageStats userId={user?.id} />
         </div>
 
         {goals.length > 0 && (
