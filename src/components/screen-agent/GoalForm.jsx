@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 export default function GoalForm({ open, onClose, onSaved, editingGoal, users }) {
@@ -13,6 +13,7 @@ export default function GoalForm({ open, onClose, onSaved, editingGoal, users })
   const [assignedToName, setAssignedToName] = useState("");
   const [steps, setSteps] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     if (editingGoal) {
@@ -51,6 +52,48 @@ export default function GoalForm({ open, onClose, onSaved, editingGoal, users })
     const user = users?.find(u => u.id === id);
     setAssignedToId(id);
     setAssignedToName(user?.full_name || user?.email || "");
+  };
+
+  const handleGenerateSteps = async () => {
+    if (!title.trim()) return;
+    setGenerating(true);
+    try {
+      const prompt = `Sos un experto en adopción digital. Un administrador quiere crear un objetivo de capacitación con el título: "${title.trim()}"${description.trim() ? ` y descripción: "${description.trim()}"` : ""}.
+
+Generá los pasos necesarios para que un usuario cumpla este objetivo. Cada paso debe ser una acción concreta y verificable.
+
+Respondé en español argentino, en formato JSON con esta estructura exacta:
+{"steps": [{"title": "título corto del paso", "description": "instrucción detallada de qué hacer en este paso"}]}
+
+Generá entre 3 y 6 pasos, ordenados lógicamente. No incluyas pasos genéricos como "practicar" o "repasar"; cada paso debe ser una acción específica.`;
+
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            steps: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  description: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (result?.steps?.length) {
+        setSteps(result.steps.map(s => ({ title: s.title, description: s.description, completed: false })));
+      }
+    } catch (err) {
+      // ignore
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleSave = async () => {
@@ -96,7 +139,7 @@ export default function GoalForm({ open, onClose, onSaved, editingGoal, users })
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej: Dominar el sistema de vacaciones"
+              placeholder="Ej: Imprimir historia clínica en Geclisa"
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-600/50"
             />
           </div>
@@ -141,7 +184,7 @@ export default function GoalForm({ open, onClose, onSaved, editingGoal, users })
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descripción del objetivo de adopción digital"
+              placeholder="Ej: El usuario debe poder localizar e imprimir la historia clínica de un paciente desde el sistema Geclisa"
               rows={2}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-600/50 resize-none"
             />
@@ -150,10 +193,22 @@ export default function GoalForm({ open, onClose, onSaved, editingGoal, users })
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs text-zinc-400">Pasos del objetivo</label>
-              <Button size="sm" variant="ghost" onClick={addStep} className="text-blue-400 hover:text-blue-300 hover:bg-zinc-800 h-7 text-xs">
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                Agregar paso
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleGenerateSteps}
+                  disabled={!title.trim() || generating}
+                  className="text-amber-400 hover:text-amber-300 hover:bg-zinc-800 h-7 text-xs"
+                >
+                  {generating ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+                  {generating ? "Generando..." : "Generar pasos con IA"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={addStep} className="text-blue-400 hover:text-blue-300 hover:bg-zinc-800 h-7 text-xs">
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Agregar paso
+                </Button>
+              </div>
             </div>
             <div className="space-y-3">
               {steps.map((step, index) => (
