@@ -86,12 +86,20 @@ export default function Home() {
     ).join('\n');
   };
 
-  const handleAction = (action, processId, stepIndex) => {
-    if (action === "show_guide" && processId) {
-      const process = processes.find(p => p.id === processId);
+  const handleAction = (action, processId, stepIndex, userText) => {
+    if (action === "show_guide") {
+      let process = processId ? processes.find(p => p.id === processId) : null;
+      if (!process && userText) {
+        const lower = userText.toLowerCase();
+        process = processes.find(p =>
+          p.title?.toLowerCase().includes(lower) ||
+          lower.includes(p.title?.toLowerCase()) ||
+          (p.keywords && p.keywords.toLowerCase().split(",").some(k => lower.includes(k.trim())))
+        );
+      }
       if (process) {
         setActiveProcess(process);
-        setActiveStepIndex(stepIndex || 0);
+        setActiveStepIndex(typeof stepIndex === "number" ? stepIndex : 0);
         setPanelMode("guide");
       }
     } else if (action === "request_screenshot") {
@@ -138,10 +146,10 @@ ${buildContext(messages) || "No hay contexto previo."}
 Consulta del usuario: ${text}
 ${image ? "\nNota: El usuario también adjuntó una imagen relacionada con su consulta. Analizala junto con el texto." : ""}
 Instrucciones:
-- Si la consulta del usuario coincide con un proceso disponible, respondé explicando brevemente y usá la acción "show_guide" con el process_id correspondiente.
-- Si necesitás ver la pantalla del usuario para ayudarlo (por ejemplo, si describe un error que necesitás ver), usá "request_screenshot".
-- Si solo necesitás responder una consulta general, usá "none".
-- Respondé en español, de forma clara y concisa.`;
+- Si la consulta del usuario coincide con un proceso disponible, O si el usuario pide que le muestres algo (ej: "mostrame", "mostrar", "quiero ver", " enseñame"), DEBÉS usar "show_guide" con el process_id exacto del proceso correspondiente y el step_index del paso más relevante (0-based).
+- Si necesitás ver la pantalla del usuario para ayudarlo, usá "request_screenshot".
+- Solo usá "none" si la consulta no tiene ninguna relación con los procesos disponibles.
+- Respondé en español, de forma clara y concisa, explicando qué vas a mostrar en el panel.`;
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt,
@@ -170,7 +178,7 @@ Instrucciones:
       setMessages(final);
       await saveMessages(activeConvId, final);
 
-      handleAction(response.action, response.process_id, response.step_index);
+      handleAction(response.action, response.process_id, response.step_index, text);
     } catch (err) {
       const errorMsg = {
         role: "assistant",
