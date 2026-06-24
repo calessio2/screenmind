@@ -97,28 +97,28 @@ Reglas:
                 properties: {
                   title: { type: "string" },
                   description: { type: "string" },
-                  image_index: { type: "number", description: "Índice (0-based) de la imagen asignada, o null si ninguna" }
+                  image_index: { type: ["number", "null"], description: "Índice (0-based) de la imagen asignada, o null si ninguna" }
                 }
               }
             }
           },
           required: ["title", "steps"]
         },
-        model: "claude_sonnet_4_6",
       });
 
-      const generatedSteps = (response.steps || []).map((step) => ({
+      const data = response.response ? response.response : response;
+      const generatedSteps = (data.steps || []).map((step) => ({
         title: step.title || "",
         description: step.description || "",
         image_url: step.image_index != null && imageUrls[step.image_index] ? imageUrls[step.image_index] : "",
       }));
 
       onGenerated({
-        title: response.title || "",
-        description: response.description || "",
-        software: response.software || "",
-        category: response.category || "",
-        keywords: response.keywords || "",
+        title: data.title || "",
+        description: data.description || "",
+        software: data.software || "",
+        category: data.category || "",
+        keywords: data.keywords || "",
         steps: generatedSteps,
       });
     } catch (err) {
