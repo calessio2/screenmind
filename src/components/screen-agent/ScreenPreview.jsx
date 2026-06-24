@@ -1,8 +1,8 @@
-import React from "react";
-import { Monitor, MonitorOff, Camera } from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import { Monitor, MonitorOff, Camera, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function ScreenPreview({ stream, latestScreenshot, isSharing, onStartSharing, onStopSharing, onCapture, isCapturing }) {
+export default function ScreenPreview({ stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing }) {
   const videoRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -14,12 +14,25 @@ export default function ScreenPreview({ stream, latestScreenshot, isSharing, onS
   if (!isSharing) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-zinc-900 to-zinc-950 rounded-xl">
+        {screenshotRequested && (
+          <div className="mb-4 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <p className="text-amber-400 text-xs text-center">
+              📸 El tutor solicitó ver tu pantalla
+            </p>
+          </div>
+        )}
         <div className="w-20 h-20 rounded-2xl bg-zinc-800/60 flex items-center justify-center mb-6">
           <Monitor className="w-10 h-10 text-zinc-500" />
         </div>
-        <p className="text-zinc-400 text-sm mb-6 text-center max-w-xs">
-          Compartí tu pantalla para que el agente pueda ver lo que estás haciendo y guiarte paso a paso.
+        <p className="text-zinc-400 text-sm mb-2 text-center max-w-xs">
+          {screenshotRequested
+            ? "Compartí tu pantalla para que el tutor pueda ver lo que estás haciendo y guiarte."
+            : "Compartí tu pantalla para recibir asistencia en tiempo real."}
         </p>
+        <div className="flex items-center gap-1.5 mb-6">
+          <ShieldCheck className="w-3.5 h-3.5 text-zinc-600" />
+          <span className="text-[10px] text-zinc-600">Las capturas no se guardan en la base de datos</span>
+        </div>
         <Button
           onClick={onStartSharing}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium"
@@ -47,7 +60,7 @@ export default function ScreenPreview({ stream, latestScreenshot, isSharing, onS
             className="text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs h-7 px-2"
           >
             <Camera className="w-3.5 h-3.5 mr-1" />
-            {isCapturing ? "Analizando..." : "Capturar"}
+            {isCapturing ? "Analizando..." : "Capturar y analizar"}
           </Button>
           <Button
             size="sm"

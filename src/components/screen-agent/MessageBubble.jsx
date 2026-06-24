@@ -1,6 +1,6 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
-import { Bot, User } from "lucide-react";
+import { Bot, User, BookOpen, Camera } from "lucide-react";
 
 export default function MessageBubble({ message }) {
   const isUser = message.role === "user";
@@ -17,9 +17,16 @@ export default function MessageBubble({ message }) {
           ? "bg-blue-600 text-white rounded-tr-md"
           : "bg-zinc-800 text-zinc-100 rounded-tl-md"
       }`}>
-        {message.has_screenshot && (
-          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider opacity-60 mb-1">
-            📸 Captura analizada
+        {message.guide_ref && !isUser && (
+          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-emerald-400 mb-1">
+            <BookOpen className="w-3 h-3" />
+            Guía mostrada en el panel →
+          </span>
+        )}
+        {message.request_screenshot && !isUser && (
+          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-amber-400 mb-1">
+            <Camera className="w-3 h-3" />
+            El tutor solicita ver tu pantalla →
           </span>
         )}
         {isUser ? (

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import ConversationSidebar from "@/components/screen-agent/ConversationSidebar";
 import ChatPanel from "@/components/screen-agent/ChatPanel";
-import ScreenPreview from "@/components/screen-agent/ScreenPreview";
+import DynamicPanel from "@/components/screen-agent/DynamicPanel";
 import { Menu, X } from "lucide-react";
 
 export default function Home() {
@@ -14,15 +14,18 @@ export default function Home() {
   const [isSharing, setIsSharing] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const videoRef = useRef(null);
+  const [panelMode, setPanelMode] = useState("default");
+  const [activeProcess, setActiveProcess] = useState(null);
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [screenshotRequested, setScreenshotRequested] = useState(false);
+  const [processes, setProcesses] = useState([]);
   const canvasRef = useRef(document.createElement("canvas"));
 
-  // Load conversations
   useEffect(() => {
     base44.entities.Conversation.list("-created_date", 50).then(setConversations);
+    base44.entities.Process.filter({ status: "active" }).then(setProcesses).catch(() => {});
   }, []);
 
-  // Load messages when active conversation changes
   useEffect(() => {
     if (activeConvId) {
       const conv = conversations.find((c) => c.id === activeConvId);
@@ -30,7 +33,10 @@ export default function Home() {
     } else {
       setMessages([]);
     }
-  }, [activeConvId, conversations]);
+    setPanelMode("default");
+    setActiveProcess(null);
+    setScreenshotRequested(false);
+  }, [activeConvId]);
 
   const createConversation = async () => {
     const conv = await base44.entities.Conversation.create({
@@ -53,10 +59,166 @@ export default function Home() {
   };
 
   const saveMessages = async (convId, newMessages) => {
-    await base44.entities.Conversation.update(convId, { messages: newMessages });
+    const serializable = newMessages.map(m => ({
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp,
+      ...(m.guide_ref ? { guide_ref: m.guide_ref } : {}),
+      ...(m.request_screenshot ? { request_screenshot: m.request_screenshot } : {}),
+    }));
+    await base44.entities.Conversation.update(convId, { messages: serializable });
     setConversations((prev) =>
       prev.map((c) => (c.id === convId ? { ...c, messages: newMessages } : c))
     );
+  };
+
+  const buildContext = (msgs) => {
+    return msgs.slice(-6).map(m => `${m.role === 'user' ? 'Usuario' : 'Tutor'}: ${m.content}`).join('\n');
+  };
+
+  const buildProcessList = () => {
+    if (processes.length === 0) return "No hay procesos disponibles aún.";
+    return processes.map(p =>
+      `ID: ${p.id} | Título: ${p.title} | Software: ${p.software || "N/A"} | Descripción: ${p.description || "N/A"} | Keywords: ${p.keywords || "N/A"}`
+    ).join('\n');
+  };
+
+  const handleAction = (action, processId, stepIndex) => {
+    if (action === "show_guide" && processId) {
+      const process = processes.find(p => p.id === processId);
+      if (process) {
+        setActiveProcess(process);
+        setActiveStepIndex(stepIndex || 0);
+        setPanelMode("guide");
+      }
+    } else if (action === "request_screenshot") {
+      setPanelMode("screen");
+      setScreenshotRequested(true);
+    }
+  };
+
+  const sendMessage = async (text) => {
+    if (!activeConvId) return;
+    setIsLoading(true);
+
+    const userMsg = { role: "user", content: text, timestamp: new Date().toISOString() };
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Sos un Tutor de Adopción Digital corporativo. Ayudás a los empleados a usar software y seguir procesos internos de la empresa.
+
+Procesos y guías disponibles:
+${buildProcessList()}
+
+Contexto previo de la conversación:
+${buildContext(messages) || "No hay contexto previo."}
+
+Consulta del usuario: ${text}
+
+Instrucciones:
+- Si la consulta del usuario coincide con un proceso disponible, respondé explicando brevemente y usá la acción "show_guide" con el process_id correspondiente.
+- Si necesitás ver la pantalla del usuario para ayudarlo (por ejemplo, si describe un error que necesitás ver), usá "request_screenshot".
+- Si solo necesitás responder una consulta general, usá "none".
+- Respondé en español, de forma clara y concisa.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            reply: { type: "string", description: "Respuesta al usuario en español" },
+            action: { type: "string", enum: ["none", "show_guide", "request_screenshot"] },
+            process_id: { type: "string", description: "ID del proceso si action es show_guide" },
+            step_index: { type: "number", description: "Índice del paso a mostrar (0-based)" }
+          },
+          required: ["reply", "action"]
+        },
+      });
+
+      const assistantMsg = {
+        role: "assistant",
+        content: response.reply,
+        timestamp: new Date().toISOString(),
+        guide_ref: response.action === "show_guide" ? response.process_id : undefined,
+        request_screenshot: response.action === "request_screenshot",
+      };
+      const final = [...updated, assistantMsg];
+      setMessages(final);
+      await saveMessages(activeConvId, final);
+
+      handleAction(response.action, response.process_id, response.step_index);
+    } catch (err) {
+      const errorMsg = {
+        role: "assistant",
+        content: "❌ Hubo un error al procesar tu consulta. Intentá de nuevo.",
+        timestamp: new Date().toISOString(),
+      };
+      const final = [...updated, errorMsg];
+      setMessages(final);
+      await saveMessages(activeConvId, final);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendImage = async (file) => {
+    if (!activeConvId) return;
+    setIsLoading(true);
+
+    const userMsg = { role: "user", content: "📎 Imagen enviada para análisis", timestamp: new Date().toISOString() };
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Sos un Tutor de Adopción Digital corporativo. El usuario envió una imagen. Analizala y ayudalo con lo que necesite.
+
+Contexto previo:
+${buildContext(messages) || "No hay contexto previo."}
+
+Procesos disponibles:
+${buildProcessList()}
+
+Respondé en español, de forma clara y concisa. Usá markdown con pasos numerados si corresponde. Si lo que ves coincide con un proceso disponible, usá "show_guide".`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            reply: { type: "string", description: "Respuesta al usuario en español" },
+            action: { type: "string", enum: ["none", "show_guide", "request_screenshot"] },
+            process_id: { type: "string" },
+            step_index: { type: "number" }
+          },
+          required: ["reply", "action"]
+        },
+        model: "claude_sonnet_4_6",
+      });
+
+      const assistantMsg = {
+        role: "assistant",
+        content: response.reply,
+        timestamp: new Date().toISOString(),
+        guide_ref: response.action === "show_guide" ? response.process_id : undefined,
+        request_screenshot: response.action === "request_screenshot",
+      };
+      const final = [...updated, assistantMsg];
+      setMessages(final);
+      await saveMessages(activeConvId, final);
+
+      handleAction(response.action, response.process_id, response.step_index);
+    } catch (err) {
+      const errorMsg = {
+        role: "assistant",
+        content: "❌ Hubo un error al analizar la imagen. Intentá de nuevo.",
+        timestamp: new Date().toISOString(),
+      };
+      const final = [...updated, errorMsg];
+      setMessages(final);
+      await saveMessages(activeConvId, final);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const captureScreenshot = useCallback(async () => {
@@ -83,7 +245,7 @@ export default function Home() {
     });
   }, [stream]);
 
-  const analyzeScreenshot = useCallback(async () => {
+  const captureAndAnalyze = useCallback(async () => {
     if (!activeConvId || !stream) return;
     setIsCapturing(true);
 
@@ -94,37 +256,48 @@ export default function Home() {
       const file = new File([blob], "screenshot.jpg", { type: "image/jpeg" });
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      const contextMessages = messages.slice(-6).map(m => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`).join('\n');
-
-      const userMsg = {
-        role: "user",
-        content: "📸 [Captura de pantalla enviada para análisis]",
-        timestamp: new Date().toISOString(),
-        has_screenshot: true,
-      };
+      const userMsg = { role: "user", content: "📸 Captura de pantalla analizada", timestamp: new Date().toISOString() };
       const updated = [...messages, userMsg];
       setMessages(updated);
 
+      setScreenshotRequested(false);
+
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Sos un asistente experto que guía al usuario paso a paso según lo que ve en su pantalla. Analizá esta captura de pantalla y decile al usuario qué está viendo y qué pasos seguir.
+        prompt: `Sos un Tutor de Adopción Digital corporativo. El usuario compartió una captura de su pantalla. Analizala y guialo sobre lo que ves.
 
-Contexto previo de la conversación:
-${contextMessages || "No hay contexto previo."}
+Contexto previo:
+${buildContext(messages) || "No hay contexto previo."}
 
-Respondé en español, de forma clara y concisa. Usá formato markdown con pasos numerados si corresponde. Sé específico sobre lo que ves en la pantalla: botones, menús, textos, etc.`,
+Procesos disponibles:
+${buildProcessList()}
+
+Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con un proceso disponible, usá "show_guide". Si necesitás más información, usá "none".`,
         file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            reply: { type: "string", description: "Respuesta al usuario en español" },
+            action: { type: "string", enum: ["none", "show_guide", "request_screenshot"] },
+            process_id: { type: "string" },
+            step_index: { type: "number" }
+          },
+          required: ["reply", "action"]
+        },
         model: "claude_sonnet_4_6",
       });
 
       const assistantMsg = {
         role: "assistant",
-        content: response,
+        content: response.reply,
         timestamp: new Date().toISOString(),
-        has_screenshot: false,
+        guide_ref: response.action === "show_guide" ? response.process_id : undefined,
+        request_screenshot: response.action === "request_screenshot",
       };
       const final = [...updated, assistantMsg];
       setMessages(final);
       await saveMessages(activeConvId, final);
+
+      handleAction(response.action, response.process_id, response.step_index);
     } catch (err) {
       const errorMsg = {
         role: "assistant",
@@ -137,65 +310,7 @@ Respondé en español, de forma clara y concisa. Usá formato markdown con pasos
     } finally {
       setIsCapturing(false);
     }
-  }, [activeConvId, stream, messages, captureScreenshot]);
-
-  const sendTextMessage = useCallback(async (text) => {
-    if (!activeConvId) return;
-    setIsLoading(true);
-
-    const userMsg = { role: "user", content: text, timestamp: new Date().toISOString() };
-    const updated = [...messages, userMsg];
-    setMessages(updated);
-
-    try {
-      let file_urls = [];
-
-      // If screen is shared, also capture and include it
-      if (stream) {
-        const blob = await captureScreenshot();
-        if (blob) {
-          const file = new File([blob], "screenshot.jpg", { type: "image/jpeg" });
-          const { file_url } = await base44.integrations.Core.UploadFile({ file });
-          file_urls = [file_url];
-        }
-      }
-
-      const contextMessages = messages.slice(-6).map(m => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`).join('\n');
-
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Sos un asistente experto que guía al usuario paso a paso. El usuario te escribió un mensaje${file_urls.length ? " y compartió una captura de su pantalla" : ""}.
-
-Contexto previo:
-${contextMessages || "No hay contexto previo."}
-
-Mensaje del usuario: ${text}
-
-Respondé en español, de forma clara y concisa. Usá markdown con pasos numerados si corresponde. Si hay una captura de pantalla, referite a lo que ves en ella.`,
-        file_urls: file_urls.length ? file_urls : undefined,
-        model: file_urls.length ? "claude_sonnet_4_6" : "automatic",
-      });
-
-      const assistantMsg = {
-        role: "assistant",
-        content: response,
-        timestamp: new Date().toISOString(),
-      };
-      const final = [...updated, assistantMsg];
-      setMessages(final);
-      await saveMessages(activeConvId, final);
-    } catch (err) {
-      const errorMsg = {
-        role: "assistant",
-        content: "❌ Hubo un error al procesar tu mensaje. Intentá de nuevo.",
-        timestamp: new Date().toISOString(),
-      };
-      const final = [...updated, errorMsg];
-      setMessages(final);
-      await saveMessages(activeConvId, final);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeConvId, messages, stream, captureScreenshot]);
+  }, [activeConvId, stream, messages, processes, captureScreenshot]);
 
   const startSharing = async () => {
     try {
@@ -205,6 +320,7 @@ Respondé en español, de forma clara y concisa. Usá markdown con pasos numerad
       });
       setStream(mediaStream);
       setIsSharing(true);
+      setScreenshotRequested(false);
       mediaStream.getVideoTracks()[0].onended = () => {
         setStream(null);
         setIsSharing(false);
@@ -224,7 +340,6 @@ Respondé en español, de forma clara y concisa. Usá markdown con pasos numerad
 
   return (
     <div className="h-screen flex bg-zinc-950 text-zinc-100">
-      {/* Mobile sidebar toggle */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="lg:hidden fixed top-3 left-3 z-50 bg-zinc-800 p-2 rounded-lg text-zinc-300"
@@ -232,7 +347,6 @@ Respondé en español, de forma clara y concisa. Usá markdown con pasos numerad
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
-      {/* Sidebar */}
       <div className={`fixed lg:static inset-y-0 left-0 z-40 transform transition-transform duration-200 ${
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       } lg:translate-x-0`}>
@@ -245,21 +359,19 @@ Respondé en español, de forma clara y concisa. Usá markdown con pasos numerad
         />
       </div>
 
-      {/* Backdrop */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-30 lg:hidden" />
       )}
 
-      {/* Main content */}
       {!activeConvId ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center px-6">
             <div className="w-20 h-20 mx-auto rounded-2xl bg-zinc-800/60 flex items-center justify-center mb-6">
-              <span className="text-4xl">🖥️</span>
+              <span className="text-4xl">🎓</span>
             </div>
-            <h1 className="text-2xl font-bold text-zinc-100 mb-2">Asistente de Pantalla</h1>
+            <h1 className="text-2xl font-bold text-zinc-100 mb-2">Tutor de Adopción Digital</h1>
             <p className="text-zinc-500 mb-6 max-w-sm mx-auto text-sm">
-              Compartí tu pantalla y recibí instrucciones paso a paso de un agente de IA en tiempo real.
+              Tu asistente inteligente para software y procesos corporativos. Aprendé, consultá y recibí soporte en tiempo real.
             </p>
             <button
               onClick={createConversation}
@@ -271,23 +383,27 @@ Respondé en español, de forma clara y concisa. Usá markdown con pasos numerad
         </div>
       ) : (
         <div className="flex-1 flex flex-col lg:flex-row gap-3 p-3 lg:pl-3 pl-3 pt-14 lg:pt-3 min-h-0">
-          {/* Chat Panel */}
           <div className="lg:w-[420px] w-full flex-shrink-0 min-h-0 h-[45vh] lg:h-auto">
             <ChatPanel
               messages={messages}
-              onSendMessage={sendTextMessage}
+              onSendMessage={sendMessage}
+              onSendImage={sendImage}
               isLoading={isLoading}
             />
           </div>
 
-          {/* Screen Preview */}
           <div className="flex-1 min-h-0 h-[45vh] lg:h-auto">
-            <ScreenPreview
+            <DynamicPanel
+              mode={panelMode}
+              process={activeProcess}
+              stepIndex={activeStepIndex}
+              onStepChange={setActiveStepIndex}
               stream={stream}
               isSharing={isSharing}
+              screenshotRequested={screenshotRequested}
               onStartSharing={startSharing}
               onStopSharing={stopSharing}
-              onCapture={analyzeScreenshot}
+              onCapture={captureAndAnalyze}
               isCapturing={isCapturing}
             />
           </div>

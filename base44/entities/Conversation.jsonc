@@ -25,12 +25,17 @@
             "type": "string",
             "format": "date-time"
           },
-          "has_screenshot": {
-            "type": "boolean"
+          "guide_ref": {
+            "type": "string",
+            "description": "ID del proceso referenciado"
+          },
+          "request_screenshot": {
+            "type": "boolean",
+            "description": "Si el bot solicit\u00f3 captura de pantalla"
           }
         }
       },
-      "description": "Chat messages"
+      "description": "Chat messages - text and metadata only, no image URLs"
     },
     "status": {
       "type": "string",

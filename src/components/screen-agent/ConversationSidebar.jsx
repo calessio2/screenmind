@@ -1,11 +1,18 @@
 import React from "react";
-import { Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Plus, MessageSquare, Trash2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export default function ConversationSidebar({ conversations, activeId, onSelect, onCreate, onDelete }) {
   return (
     <div className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col h-full">
       <div className="p-3 border-b border-zinc-800">
+        <Link to="/procesos" className="block mb-2">
+          <Button variant="ghost" className="w-full justify-start text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 text-sm rounded-lg h-9">
+            <BookOpen className="w-4 h-4 mr-2" />
+            Gestión de Procesos
+          </Button>
+        </Link>
         <Button
           onClick={onCreate}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg h-9"

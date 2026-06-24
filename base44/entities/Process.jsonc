@@ -1,0 +1,58 @@
+{
+  "name": "Process",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del proceso o gu\u00eda"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n breve del proceso"
+    },
+    "software": {
+      "type": "string",
+      "description": "Software o sistema al que pertenece"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda del proceso"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "T\u00edtulo del paso"
+          },
+          "description": {
+            "type": "string",
+            "description": "Instrucci\u00f3n del paso"
+          },
+          "image_url": {
+            "type": "string",
+            "description": "Imagen de referencia del paso"
+          }
+        }
+      },
+      "description": "Pasos del proceso con im\u00e1genes"
+    },
+    "keywords": {
+      "type": "string",
+      "description": "Palabras clave para b\u00fasqueda separadas por comas"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}
