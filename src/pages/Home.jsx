@@ -14,6 +14,7 @@ export default function Home() {
   const [isSharing, setIsSharing] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [panelMode, setPanelMode] = useState("default");
   const [activeProcess, setActiveProcess] = useState(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
@@ -341,7 +342,10 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
   return (
     <div className="h-screen flex bg-zinc-950 text-zinc-100">
       <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
+        onClick={() => {
+          if (!sidebarOpen) setSidebarCollapsed(false);
+          setSidebarOpen(!sidebarOpen);
+        }}
         className="lg:hidden fixed top-3 left-3 z-50 bg-zinc-900/80 backdrop-blur p-2 rounded-lg text-zinc-300 border border-zinc-800"
       >
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -356,6 +360,11 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
           onSelect={(id) => { setActiveConvId(id); setSidebarOpen(false); }}
           onCreate={createConversation}
           onDelete={deleteConversation}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => {
+            setSidebarCollapsed(!sidebarCollapsed);
+            setSidebarOpen(false);
+          }}
         />
       </div>
 
