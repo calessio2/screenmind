@@ -1,9 +1,10 @@
 import React from "react";
-import { Plus, MessageSquare, Trash2, BookOpen, PanelLeft, Search } from "lucide-react";
+import { Plus, MessageSquare, Trash2, BookOpen, PanelLeft, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import UserProfile from "./UserProfile";
 
-export default function ConversationSidebar({ conversations, activeId, onSelect, onCreate, onDelete, collapsed, onToggleCollapse }) {
+export default function ConversationSidebar({ conversations, activeId, onSelect, onCreate, onDelete, collapsed, onToggleCollapse, user }) {
   if (collapsed) {
     return (
       <div className="w-14 bg-zinc-950 border-r border-white/[0.06] flex flex-col items-center h-full py-3 gap-1">
@@ -12,7 +13,7 @@ export default function ConversationSidebar({ conversations, activeId, onSelect,
           className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] transition-colors mb-1"
           title="Expandir sidebar"
         >
-          <PanelLeft className="w-4.5 h-4.5" />
+          <PanelLeft className="w-4 h-4" />
         </button>
 
         <button
@@ -20,7 +21,7 @@ export default function ConversationSidebar({ conversations, activeId, onSelect,
           className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] transition-colors"
           title="Nueva conversación"
         >
-          <Plus className="w-4.5 h-4.5" />
+          <Plus className="w-4 h-4" />
         </button>
 
         <Link
@@ -28,25 +29,30 @@ export default function ConversationSidebar({ conversations, activeId, onSelect,
           className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] transition-colors"
           title="Gestión de Procesos"
         >
-          <BookOpen className="w-4.5 h-4.5" />
+          <BookOpen className="w-4 h-4" />
         </Link>
 
-        <div className="flex-1 overflow-y-auto w-full flex flex-col items-center gap-1 py-2">
-          {conversations.slice(0, 12).map((conv) => (
-            <button
-              key={conv.id}
-              onClick={() => onSelect(conv.id)}
-              title={conv.title}
-              className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-                activeId === conv.id
-                  ? "bg-white/[0.08] text-zinc-200"
-                  : "text-zinc-600 hover:text-zinc-400"
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={onToggleCollapse}
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors"
+          title="Ver conversaciones"
+        >
+          <MessageSquare className="w-4 h-4" />
+        </button>
+
+        {user?.role === "admin" && (
+          <Link
+            to="/gestion-objetivos"
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-600 hover:text-amber-400 hover:bg-white/[0.04] transition-colors"
+            title="Gestión de Objetivos"
+          >
+            <Target className="w-4 h-4" />
+          </Link>
+        )}
+
+        <div className="flex-1" />
+
+        <UserProfile user={user} collapsed />
       </div>
     );
   }
@@ -78,6 +84,14 @@ export default function ConversationSidebar({ conversations, activeId, onSelect,
             Gestión de Procesos
           </Button>
         </Link>
+        {user?.role === "admin" && (
+          <Link to="/gestion-objetivos" className="block">
+            <Button variant="ghost" className="w-full justify-start text-zinc-500 hover:text-amber-400 hover:bg-white/[0.04] text-sm rounded-lg h-9 font-normal">
+              <Target className="w-4 h-4 mr-2" />
+              Gestión de Objetivos
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="px-4 pt-4 pb-1">
@@ -109,6 +123,10 @@ export default function ConversationSidebar({ conversations, activeId, onSelect,
             </button>
           </div>
         ))}
+      </div>
+
+      <div className="p-2 border-t border-white/[0.06]">
+        <UserProfile user={user} />
       </div>
     </div>
   );

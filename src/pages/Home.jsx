@@ -15,6 +15,7 @@ export default function Home() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [user, setUser] = useState(null);
   const [panelMode, setPanelMode] = useState("default");
   const [activeProcess, setActiveProcess] = useState(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
@@ -25,6 +26,7 @@ export default function Home() {
   useEffect(() => {
     base44.entities.Conversation.list("-created_date", 50).then(setConversations);
     base44.entities.Process.filter({ status: "active" }).then(setProcesses).catch(() => {});
+    base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -360,6 +362,7 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
           onSelect={(id) => { setActiveConvId(id); setSidebarOpen(false); }}
           onCreate={createConversation}
           onDelete={deleteConversation}
+          user={user}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => {
             setSidebarCollapsed(!sidebarCollapsed);

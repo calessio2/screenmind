@@ -8,6 +8,8 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import Processes from './pages/Processes';
+import MyGoals from './pages/MyGoals';
+import GoalManagement from './pages/GoalManagement';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -48,6 +50,8 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route path="/" element={<Home />} />
         <Route path="/procesos" element={<Processes />} />
+        <Route path="/mis-objetivos" element={<MyGoals />} />
+        <Route path="/gestion-objetivos" element={<GoalManagement />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

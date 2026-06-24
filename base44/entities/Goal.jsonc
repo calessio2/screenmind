@@ -1,0 +1,67 @@
+{
+  "name": "Goal",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del objetivo de adopci\u00f3n digital"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n del objetivo"
+    },
+    "assigned_to_id": {
+      "type": "string",
+      "description": "ID del usuario asignado"
+    },
+    "assigned_to_name": {
+      "type": "string",
+      "description": "Nombre del usuario asignado"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda del objetivo (ej: RRHH, Finanzas, Sistemas)"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha l\u00edmite del objetivo"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "T\u00edtulo del paso"
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripci\u00f3n o instrucci\u00f3n del paso"
+          },
+          "completed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Si el paso est\u00e1 completado"
+          }
+        }
+      },
+      "description": "Pasos del objetivo para medir el progreso"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "archived"
+      ],
+      "default": "active",
+      "description": "Estado del objetivo"
+    }
+  },
+  "required": [
+    "title",
+    "assigned_to_id"
+  ]
+}
