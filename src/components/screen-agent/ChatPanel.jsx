@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Paperclip } from "lucide-react";
+import { Send, Loader2, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MessageBubble from "./MessageBubble";
 
-export default function ChatPanel({ messages, onSendMessage, onSendImage, isLoading }) {
+export default function ChatPanel({ messages, onSendMessage, isLoading }) {
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState(null);
   const [pendingImageUrl, setPendingImageUrl] = useState(null);
@@ -15,10 +15,14 @@ export default function ChatPanel({ messages, onSendMessage, onSendImage, isLoad
   }, [messages]);
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    onSendMessage(input.trim());
+    if (e) e.preventDefault();
+    if (isLoading) return;
+    if (!input.trim() && !pendingImage) return;
+    const text = input.trim() || (pendingImage ? "📎 Imagen enviada para análisis" : "");
+    onSendMessage(text, pendingImage);
     setInput("");
+    setPendingImage(null);
+    setPendingImageUrl(null);
   };
 
   const handleFileSelect = (e) => {
@@ -31,13 +35,6 @@ export default function ChatPanel({ messages, onSendMessage, onSendImage, isLoad
       onSendMessage(`📎 Archivo adjunto: ${file.name}`);
     }
     e.target.value = "";
-  };
-
-  const handleSendImage = () => {
-    if (!pendingImage || isLoading) return;
-    onSendImage(pendingImage);
-    setPendingImage(null);
-    setPendingImageUrl(null);
   };
 
   const handleKeyDown = (e) => {
@@ -86,30 +83,20 @@ export default function ChatPanel({ messages, onSendMessage, onSendImage, isLoad
         <div ref={messagesEndRef} />
       </div>
 
-      {pendingImage && (
-        <div className="px-3 py-2 border-t border-white/[0.06]">
-          <div className="flex items-center gap-2 bg-white/[0.04] rounded-lg p-2">
-            <img src={pendingImageUrl} alt="preview" className="w-10 h-10 rounded object-cover" />
+      <form onSubmit={handleSubmit} className="px-3 py-3 border-t border-white/[0.06]">
+        {pendingImage && (
+          <div className="flex items-center gap-2 mb-2 bg-white/[0.04] rounded-xl p-2">
+            <img src={pendingImageUrl} alt="preview" className="w-12 h-12 rounded-lg object-cover" />
             <span className="text-xs text-zinc-400 flex-1 truncate">{pendingImage.name}</span>
             <button
+              type="button"
               onClick={() => { setPendingImage(null); setPendingImageUrl(null); }}
-              className="text-zinc-600 hover:text-zinc-300 text-xs"
+              className="w-6 h-6 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
             >
-              Cancelar
+              <X className="w-4 h-4" />
             </button>
-            <Button
-              size="sm"
-              onClick={handleSendImage}
-              disabled={isLoading}
-              className="bg-white text-zinc-950 hover:bg-zinc-200 h-7 px-3 text-xs"
-            >
-              Enviar
-            </Button>
           </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="px-3 py-3 border-t border-white/[0.06]">
+        )}
         <div className="flex gap-2 items-center">
           <input
             type="file"
@@ -131,12 +118,12 @@ export default function ChatPanel({ messages, onSendMessage, onSendImage, isLoad
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Escribí tu consulta..."
+            placeholder={pendingImage ? "Agregá una descripción (opcional)..." : "Escribí tu consulta..."}
             className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-white/[0.12] transition-colors"
           />
           <Button
             type="submit"
-            disabled={!input.trim() || isLoading}
+            disabled={(!input.trim() && !pendingImage) || isLoading}
             className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-xl px-3 disabled:opacity-30"
           >
             <Send className="w-4 h-4" />

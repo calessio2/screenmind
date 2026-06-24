@@ -100,7 +100,7 @@ export default function Home() {
     }
   };
 
-  const sendMessage = async (text) => {
+  const sendMessage = async (text, image) => {
     if (!activeConvId) return;
     setIsLoading(true);
 
@@ -109,8 +109,25 @@ export default function Home() {
     setMessages(updated);
 
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Sos un Tutor de Adopción Digital corporativo. Ayudás a los empleados a usar software y seguir procesos internos de la empresa.
+      let file_url = null;
+      if (image) {
+        const uploadResult = await base44.integrations.Core.UploadFile({ file: image });
+        file_url = uploadResult.file_url;
+      }
+
+      const isImageMsg = text.startsWith("📎 Imagen") || (image && !text.trim().replace("📎 Imagen enviada para análisis", "").trim());
+
+      const prompt = isImageMsg
+        ? `Sos un Tutor de Adopción Digital corporativo. El usuario envió una imagen${text && !text.startsWith("📎") ? ` con el mensaje: "${text}"` : ""}. Analizala y ayudalo con lo que necesite.
+
+Contexto previo:
+${buildContext(messages) || "No hay contexto previo."}
+
+Procesos disponibles:
+${buildProcessList()}
+
+Respondé en español, de forma clara y concisa. Usá markdown con pasos numerados si corresponde. Si lo que ves coincide con un proceso disponible, usá "show_guide".`
+        : `Sos un Tutor de Adopción Digital corporativo. Ayudás a los empleados a usar software y seguir procesos internos de la empresa.
 
 Procesos y guías disponibles:
 ${buildProcessList()}
@@ -119,12 +136,16 @@ Contexto previo de la conversación:
 ${buildContext(messages) || "No hay contexto previo."}
 
 Consulta del usuario: ${text}
-
+${image ? "\nNota: El usuario también adjuntó una imagen relacionada con su consulta. Analizala junto con el texto." : ""}
 Instrucciones:
 - Si la consulta del usuario coincide con un proceso disponible, respondé explicando brevemente y usá la acción "show_guide" con el process_id correspondiente.
 - Si necesitás ver la pantalla del usuario para ayudarlo (por ejemplo, si describe un error que necesitás ver), usá "request_screenshot".
 - Si solo necesitás responder una consulta general, usá "none".
-- Respondé en español, de forma clara y concisa.`,
+- Respondé en español, de forma clara y concisa.`;
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        ...(file_url ? { file_urls: [file_url] } : {}),
         response_json_schema: {
           type: "object",
           properties: {
@@ -135,6 +156,7 @@ Instrucciones:
           },
           required: ["reply", "action"]
         },
+        ...(isImageMsg ? { model: "claude_sonnet_4_6" } : {}),
       });
 
       const assistantMsg = {
@@ -153,67 +175,6 @@ Instrucciones:
       const errorMsg = {
         role: "assistant",
         content: "❌ Hubo un error al procesar tu consulta. Intentá de nuevo.",
-        timestamp: new Date().toISOString(),
-      };
-      const final = [...updated, errorMsg];
-      setMessages(final);
-      await saveMessages(activeConvId, final);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const sendImage = async (file) => {
-    if (!activeConvId) return;
-    setIsLoading(true);
-
-    const userMsg = { role: "user", content: "📎 Imagen enviada para análisis", timestamp: new Date().toISOString() };
-    const updated = [...messages, userMsg];
-    setMessages(updated);
-
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Sos un Tutor de Adopción Digital corporativo. El usuario envió una imagen. Analizala y ayudalo con lo que necesite.
-
-Contexto previo:
-${buildContext(messages) || "No hay contexto previo."}
-
-Procesos disponibles:
-${buildProcessList()}
-
-Respondé en español, de forma clara y concisa. Usá markdown con pasos numerados si corresponde. Si lo que ves coincide con un proceso disponible, usá "show_guide".`,
-        file_urls: [file_url],
-        response_json_schema: {
-          type: "object",
-          properties: {
-            reply: { type: "string", description: "Respuesta al usuario en español" },
-            action: { type: "string", enum: ["none", "show_guide", "request_screenshot"] },
-            process_id: { type: "string" },
-            step_index: { type: "number" }
-          },
-          required: ["reply", "action"]
-        },
-        model: "claude_sonnet_4_6",
-      });
-
-      const assistantMsg = {
-        role: "assistant",
-        content: response.reply,
-        timestamp: new Date().toISOString(),
-        guide_ref: response.action === "show_guide" ? response.process_id : undefined,
-        request_screenshot: response.action === "request_screenshot",
-      };
-      const final = [...updated, assistantMsg];
-      setMessages(final);
-      await saveMessages(activeConvId, final);
-
-      handleAction(response.action, response.process_id, response.step_index);
-    } catch (err) {
-      const errorMsg = {
-        role: "assistant",
-        content: "❌ Hubo un error al analizar la imagen. Intentá de nuevo.",
         timestamp: new Date().toISOString(),
       };
       const final = [...updated, errorMsg];
@@ -399,7 +360,6 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
             <ChatPanel
               messages={messages}
               onSendMessage={sendMessage}
-              onSendImage={sendImage}
               isLoading={isLoading}
             />
           </div>
