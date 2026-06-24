@@ -370,6 +370,9 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
               messages={messages}
               onSendMessage={sendMessage}
               isLoading={isLoading}
+              isSharing={isSharing}
+              onStartSharing={startSharing}
+              onStopSharing={stopSharing}
             />
           </div>
 

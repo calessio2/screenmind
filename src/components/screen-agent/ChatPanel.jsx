@@ -1,14 +1,26 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Paperclip, X } from "lucide-react";
+import { Send, Loader2, Plus, X, Image, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MessageBubble from "./MessageBubble";
 
-export default function ChatPanel({ messages, onSendMessage, isLoading }) {
+export default function ChatPanel({ messages, onSendMessage, isLoading, isSharing, onStartSharing, onStopSharing }) {
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState(null);
   const [pendingImageUrl, setPendingImageUrl] = useState(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const toolsRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (toolsRef.current && !toolsRef.current.contains(e.target)) {
+        setToolsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -97,7 +109,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading }) {
             </button>
           </div>
         )}
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center relative">
           <input
             type="file"
             ref={fileInputRef}
@@ -105,14 +117,38 @@ export default function ChatPanel({ messages, onSendMessage, isLoading }) {
             accept="image/*"
             className="hidden"
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading}
-            className="flex-shrink-0 w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition-colors disabled:opacity-30"
-          >
-            <Paperclip className="w-4 h-4" />
-          </button>
+          <div ref={toolsRef} className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setToolsOpen(!toolsOpen)}
+              disabled={isLoading}
+              className={`w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center transition-colors disabled:opacity-30 ${
+                toolsOpen ? "text-zinc-100 bg-white/[0.08]" : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]"
+              }`}
+            >
+              <Plus className={`w-4 h-4 transition-transform ${toolsOpen ? "rotate-45" : ""}`} />
+            </button>
+            {toolsOpen && (
+              <div className="absolute bottom-11 left-0 w-44 bg-zinc-900 border border-white/[0.08] rounded-xl shadow-2xl py-1 z-50">
+                <button
+                  type="button"
+                  onClick={() => { fileInputRef.current?.click(); setToolsOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-white/[0.06] transition-colors"
+                >
+                  <Image className="w-4 h-4 text-zinc-500" />
+                  Subir archivo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { isSharing ? onStopSharing?.() : onStartSharing?.(); setToolsOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-white/[0.06] transition-colors"
+                >
+                  <Monitor className={`w-4 h-4 ${isSharing ? "text-red-400" : "text-zinc-500"}`} />
+                  {isSharing ? "Detener pantalla" : "Compartir pantalla"}
+                </button>
+              </div>
+            )}
+          </div>
           <input
             type="text"
             value={input}
