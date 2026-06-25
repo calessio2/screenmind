@@ -24,7 +24,6 @@ export default function Home() {
   const [processes, setProcesses] = useState([]);
   const [interactiveContents, setInteractiveContents] = useState([]);
   const [activeInteractive, setActiveInteractive] = useState(null);
-  const [activeVideoTranscript, setActiveVideoTranscript] = useState(null);
   const [guidedMode, setGuidedMode] = useState(false);
   const [overlayStep, setOverlayStep] = useState(null);
   const [guidedStepNumber, setGuidedStepNumber] = useState(0);
@@ -48,7 +47,6 @@ export default function Home() {
     setPanelMode("default");
     setActiveProcess(null);
     setActiveInteractive(null);
-    setActiveVideoTranscript(null);
     setScreenshotRequested(false);
   }, [activeConvId]);
 
@@ -104,81 +102,12 @@ export default function Home() {
     ).join('\n');
   };
 
-  const extractYoutubeId = (input) => {
-    if (!input) return null;
-    const trimmed = input.trim();
-    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
-    try {
-      const url = new URL(trimmed);
-      if (url.hostname === "youtu.be") {
-        const id = url.pathname.split("/").filter(Boolean)[0];
-        if (/^[a-zA-Z0-9_-]{11}$/.test(id)) return id;
-      }
-      if (url.hostname.includes("youtube.com")) {
-        const v = url.searchParams.get("v");
-        if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
-        const pathMatch = url.pathname.match(/\/(?:embed|shorts)\/([a-zA-Z0-9_-]{11})/);
-        if (pathMatch) return pathMatch[1];
-      }
-    } catch (e) {}
-    const m = trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/) || trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-    return m ? m[1] : null;
-  };
-
-  const fetchVideoTranscript = async (content) => {
-    if (!content || content.type !== "youtube") return;
-    const videoId = extractYoutubeId(content.config?.youtube_id);
-    if (!videoId) return;
-    setActiveVideoTranscript(null);
-    try {
-      // First try the backend function for the actual transcript
-      let transcriptData = null;
-      try {
-        const res = await base44.functions.invoke('fetchYoutubeTranscript', { video_id: videoId });
-        if (res.data?.transcript) {
-          transcriptData = res.data.transcript;
-        }
-      } catch (e) {
-        // Backend transcript failed — will fall back to Gemini
-      }
-
-      if (transcriptData) {
-        setActiveVideoTranscript({ title: content.title, transcript: transcriptData });
-      } else {
-        // Fallback: use Gemini with web search to get video content summary
-        const response = await base44.integrations.Core.InvokeLLM({
-          prompt: `Buscá información sobre este video de YouTube y proporcioná un resumen detallado de su contenido, incluyendo los pasos o conceptos principales que se explican.
-
-Título del video: ${content.title}
-URL: https://www.youtube.com/watch?v=${videoId}
-
-Si es un tutorial, incluí los pasos específicos. Si es informativo, resumí los puntos clave.`,
-          add_context_from_internet: true,
-          model: "gemini_3_flash",
-          response_json_schema: {
-            type: "object",
-            properties: {
-              summary: { type: "string", description: "Resumen detallado del contenido del video" }
-            },
-            required: ["summary"]
-          }
-        });
-        if (response.summary) {
-          setActiveVideoTranscript({ title: content.title, transcript: response.summary });
-        }
-      }
-    } catch (err) {
-      // both methods failed — bot will work without video context
-    }
-  };
-
   const handleAction = (action, processId, stepIndex, userText, interactiveId) => {
     if (action === "show_interactive" && interactiveId) {
       const content = interactiveContents.find(c => c.id === interactiveId);
       if (content) {
         setActiveInteractive(content);
         setPanelMode("interactive");
-        fetchVideoTranscript(content);
       }
     } else if (action === "show_guide" || action === "start_guided") {
       let process = processId ? processes.find(p => p.id === processId) : null;
@@ -250,13 +179,7 @@ ${buildProcessList()}
 Contenidos interactivos disponibles (videos, simuladores, juegos):
 ${buildInteractiveList()}
 
-${activeVideoTranscript ? `=== TRANSCRIPCIÓN DEL VIDEO ACTUALMENTE MOSTRADO ===
-Título: ${activeVideoTranscript.title}
-Contenido del video:
-${activeVideoTranscript.transcript}
-
-Podés responder preguntas sobre el contenido de este video usando esta transcripción.
-` : ""}Contexto previo de la conversación:
+Contexto previo de la conversación:
 ${buildContext(messages) || "No hay contexto previo."}
 
 Estado: ${screenState}
