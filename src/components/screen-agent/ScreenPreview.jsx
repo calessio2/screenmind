@@ -1,15 +1,24 @@
-import React, { useEffect, useRef } from "react";
-import { Monitor, MonitorOff, Camera, ShieldCheck } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Monitor, MonitorOff, Camera, ShieldCheck, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ScreenOverlay from "./ScreenOverlay";
 
-export default function ScreenPreview({ stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing }) {
-  const videoRef = React.useRef(null);
+export default function ScreenPreview({ stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing, guidedMode, overlayStep, guidedStepNumber, isAnalyzingStep, onStartGuidedMode, onNextGuidedStep, onStopGuidedMode }) {
+  const videoRef = useRef(null);
+  const [aspectRatio, setAspectRatio] = useState(1.78);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
   }, [stream]);
+
+  const handleLoadedMetadata = () => {
+    const video = videoRef.current;
+    if (video?.videoWidth && video?.videoHeight) {
+      setAspectRatio(video.videoWidth / video.videoHeight);
+    }
+  };
 
   if (!isSharing) {
     return (
@@ -55,12 +64,22 @@ export default function ScreenPreview({ stream, isSharing, screenshotRequested, 
           <Button
             size="sm"
             variant="ghost"
+            onClick={onStartGuidedMode}
+            disabled={guidedMode || isAnalyzingStep}
+            className="text-blue-400 hover:text-blue-300 hover:bg-blue-950/40 text-xs h-7 px-2"
+          >
+            <ScanLine className="w-3.5 h-3.5 mr-1" />
+            Modo guiado
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
             onClick={onCapture}
             disabled={isCapturing}
             className="text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] text-xs h-7 px-2"
           >
             <Camera className="w-3.5 h-3.5 mr-1" />
-            {isCapturing ? "Analizando..." : "Capturar y analizar"}
+            {isCapturing ? "Analizando..." : "Capturar"}
           </Button>
           <Button
             size="sm"
@@ -73,14 +92,26 @@ export default function ScreenPreview({ stream, isSharing, screenshotRequested, 
           </Button>
         </div>
       </div>
-      <div className="flex-1 relative bg-black flex items-center justify-center p-2">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="max-w-full max-h-full rounded-lg object-contain"
-        />
+      <div className="flex-1 relative bg-black flex items-center justify-center p-2 overflow-hidden">
+        <div className="relative max-w-full max-h-full" style={{ aspectRatio: `${aspectRatio}` }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            onLoadedMetadata={handleLoadedMetadata}
+            className="w-full h-full rounded-lg object-contain"
+          />
+          {guidedMode && (
+            <ScreenOverlay
+              overlayData={overlayStep}
+              stepNumber={guidedStepNumber}
+              isAnalyzing={isAnalyzingStep}
+              onNext={onNextGuidedStep}
+              onStop={onStopGuidedMode}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

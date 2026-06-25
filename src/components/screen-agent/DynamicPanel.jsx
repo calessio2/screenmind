@@ -3,7 +3,7 @@ import GuideViewer from "./GuideViewer";
 import ScreenPreview from "./ScreenPreview";
 import { BookOpen, Monitor, Sparkles } from "lucide-react";
 
-export default function DynamicPanel({ mode, process, stepIndex, onStepChange, stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing }) {
+export default function DynamicPanel({ mode, process, stepIndex, onStepChange, stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing, guidedMode, overlayStep, guidedStepNumber, isAnalyzingStep, onStartGuidedMode, onNextGuidedStep, onStopGuidedMode }) {
   if (mode === "guide" && process) {
     return <GuideViewer process={process} stepIndex={stepIndex} onStepChange={onStepChange} />;
   }
@@ -18,6 +18,13 @@ export default function DynamicPanel({ mode, process, stepIndex, onStepChange, s
         onStopSharing={onStopSharing}
         onCapture={onCapture}
         isCapturing={isCapturing}
+        guidedMode={guidedMode}
+        overlayStep={overlayStep}
+        guidedStepNumber={guidedStepNumber}
+        isAnalyzingStep={isAnalyzingStep}
+        onStartGuidedMode={onStartGuidedMode}
+        onNextGuidedStep={onNextGuidedStep}
+        onStopGuidedMode={onStopGuidedMode}
       />
     );
   }

@@ -21,6 +21,10 @@ export default function Home() {
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [screenshotRequested, setScreenshotRequested] = useState(false);
   const [processes, setProcesses] = useState([]);
+  const [guidedMode, setGuidedMode] = useState(false);
+  const [overlayStep, setOverlayStep] = useState(null);
+  const [guidedStepNumber, setGuidedStepNumber] = useState(0);
+  const [isAnalyzingStep, setIsAnalyzingStep] = useState(false);
   const canvasRef = useRef(document.createElement("canvas"));
 
   useEffect(() => {
@@ -309,6 +313,90 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
     }
     setStream(null);
     setIsSharing(false);
+    setGuidedMode(false);
+    setOverlayStep(null);
+    setGuidedStepNumber(0);
+  };
+
+  const analyzeForGuidance = useCallback(async () => {
+    if (!stream) return;
+    setIsAnalyzingStep(true);
+    try {
+      const blob = await captureScreenshot();
+      if (!blob) return;
+      const file = new File([blob], "guided-step.jpg", { type: "image/jpeg" });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Sos un tutor de software con visión computacional. El usuario está compartiendo su pantalla y necesita guía paso a paso, como una capa de realidad aumentada sobre su software.
+
+Contexto de la conversación:
+${buildContext(messages) || "No hay contexto previo."}
+
+Procesos disponibles:
+${buildProcessList()}
+
+Analizá la captura de pantalla actual. Determiná cuál es el SIGUIENTE paso que el usuario debe realizar.
+
+Devolvé:
+- instruction: instrucción clara y concisa de qué hacer ahora
+- target_description: nombre o descripción breve del botón o elemento a interactuar
+- bounding_box: coordenadas del elemento como porcentajes (0-100) donde x,y es la esquina superior izquierda y width,height son el tamaño
+- is_final: true si la tarea ya está completa
+
+Si no podés identificar una tarea clara, la instrucción debe preguntar al usuario qué necesita hacer.`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            instruction: { type: "string" },
+            target_description: { type: "string" },
+            bounding_box: {
+              type: "object",
+              properties: {
+                x: { type: "number" },
+                y: { type: "number" },
+                width: { type: "number" },
+                height: { type: "number" }
+              },
+              required: ["x", "y", "width", "height"]
+            },
+            is_final: { type: "boolean" }
+          },
+          required: ["instruction", "bounding_box", "is_final"]
+        },
+        model: "claude_sonnet_4_6",
+      });
+
+      setOverlayStep(response);
+    } catch (err) {
+      setOverlayStep(null);
+    } finally {
+      setIsAnalyzingStep(false);
+    }
+  }, [stream, messages, processes, captureScreenshot]);
+
+  const startGuidedMode = () => {
+    setGuidedMode(true);
+    setGuidedStepNumber(1);
+    setOverlayStep(null);
+    analyzeForGuidance();
+  };
+
+  const nextGuidedStep = () => {
+    if (overlayStep?.is_final) {
+      stopGuidedMode();
+      return;
+    }
+    setGuidedStepNumber((prev) => prev + 1);
+    setOverlayStep(null);
+    analyzeForGuidance();
+  };
+
+  const stopGuidedMode = () => {
+    setGuidedMode(false);
+    setOverlayStep(null);
+    setGuidedStepNumber(0);
   };
 
   return (
@@ -389,6 +477,13 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
               onStopSharing={stopSharing}
               onCapture={captureAndAnalyze}
               isCapturing={isCapturing}
+              guidedMode={guidedMode}
+              overlayStep={overlayStep}
+              guidedStepNumber={guidedStepNumber}
+              isAnalyzingStep={isAnalyzingStep}
+              onStartGuidedMode={startGuidedMode}
+              onNextGuidedStep={nextGuidedStep}
+              onStopGuidedMode={stopGuidedMode}
             />
           </div>
         </div>
