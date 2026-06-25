@@ -362,29 +362,37 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Sos un tutor de software con visión computacional. El usuario está compartiendo su pantalla y necesita guía paso a paso, como una capa de realidad aumentada sobre su software.
+        prompt: `Sos un tutor de software experto con visión computacional. El usuario está compartiendo su pantalla en vivo y necesita que lo guíes paso a paso con una capa de realidad aumentada sobre su software.
 
-Contexto de la conversación:
+=== TAREA DEL USUARIO ===
 ${buildContext(messages) || "No hay contexto previo."}
 
-Procesos disponibles:
+=== PROCESOS DE REFERENCIA ===
 ${buildProcessList()}
 
-Analizá la captura de pantalla actual. Determiná cuál es el SIGUIENTE paso que el usuario debe realizar.
+Analizá la captura de pantalla actual con atención al detalle. Necesitás:
 
-Devolvé:
-- instruction: instrucción clara y concisa de qué hacer ahora
-- target_description: nombre o descripción breve del botón o elemento a interactuar
-- bounding_box: coordenadas del elemento como porcentajes (0-100) donde x,y es la esquina superior izquierda y width,height son el tamaño
-- is_final: true si la tarea ya está completa
+1. IDENTIFICAR qué aplicación o sitio web está abierta (Gmail, Excel, Word, un sistema interno, etc.)
+2. LEER el texto visible en pantalla: títulos, botones, menús, correos, campos de formulario, pestañas
+3. DETERMINAR en qué punto de la tarea está el usuario comparando lo que ves en pantalla con la tarea que quiere completar
+4. IDENTIFICAR el elemento exacto con el que debe interactuar ahora para avanzar al siguiente paso
 
-Si no podés identificar una tarea clara, la instrucción debe preguntar al usuario qué necesita hacer.`,
+Luego devolvé:
+
+- instruction: instrucción específica y accionable que diga EXACTAMENTE qué hacer y en qué elemento. Ej: "Hacé clic en el botón redactar arriba a la izquierda para crear un nuevo email". NUNCA uses instrucciones genéricas como "Hacé clic aquí". Siempre mencioná el nombre o texto del elemento visible.
+- target_description: el nombre o texto EXACTO del botón, menú o elemento que el usuario debe clickear, tal como aparece en pantalla. Ej: "Botón Redactar", "Campo Para:", "Botón CCO". NUNCA dejes esto vacío ni genérico.
+- bounding_box: coordenadas del elemento como porcentajes (0-100) donde x,y es la esquina superior izquierda y width,height son el tamaño del recuadro que rodea el elemento a clickear
+- what_you_see: descripción breve de lo que identificaste en pantalla (ej: "Gmail inbox con lista de correos, botón redactar arriba")
+- is_final: true si la tarea ya está completa según lo que ves en pantalla
+
+Si no podés identificar el elemento o el usuario ya terminó, explicalo en la instrucción.`,
         file_urls: [file_url],
         response_json_schema: {
           type: "object",
           properties: {
             instruction: { type: "string" },
             target_description: { type: "string" },
+            what_you_see: { type: "string" },
             bounding_box: {
               type: "object",
               properties: {
@@ -397,7 +405,7 @@ Si no podés identificar una tarea clara, la instrucción debe preguntar al usua
             },
             is_final: { type: "boolean" }
           },
-          required: ["instruction", "bounding_box", "is_final"]
+          required: ["instruction", "target_description", "what_you_see", "bounding_box", "is_final"]
         },
         model: "claude_sonnet_4_6",
       });
