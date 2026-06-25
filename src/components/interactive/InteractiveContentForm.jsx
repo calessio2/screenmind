@@ -162,12 +162,12 @@ export default function InteractiveContentForm({ content, onClose, onSaved }) {
 
             {type === "youtube" && (
               <div>
-                <label className="text-xs text-zinc-500 mb-1.5 block">ID del video de YouTube</label>
+                <label className="text-xs text-zinc-500 mb-1.5 block">Link del video de YouTube</label>
                 <input
                   type="text"
                   value={config.youtube_id || ""}
                   onChange={(e) => updateConfig("youtube_id", e.target.value)}
-                  placeholder="Ej: dQw4w9WgXcQ (la parte después de v=)"
+                  placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
                   className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-white/[0.12]"
                 />
               </div>

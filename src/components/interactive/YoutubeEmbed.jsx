@@ -1,11 +1,25 @@
 import React from "react";
 
 export default function YoutubeEmbed({ config }) {
-  const videoId = config?.youtube_id;
+  const extractVideoId = (input) => {
+    if (!input) return null;
+    const trimmed = input.trim();
+    // Already an ID (11 chars, no slashes)
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+    // youtu.be/ID
+    const shortMatch = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (shortMatch) return shortMatch[1];
+    // youtube.com/watch?v=ID or embed/ID or short/ID
+    const longMatch = trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/) || trimmed.match(/(?:embed|shorts)\/([a-zA-Z0-9_-]{11})/);
+    if (longMatch) return longMatch[1];
+    return null;
+  };
+
+  const videoId = extractVideoId(config?.youtube_id);
   if (!videoId) {
     return (
       <div className="flex items-center justify-center h-full text-zinc-600 text-sm">
-        No se configuró un video de YouTube.
+        No se pudo extraer el video de YouTube del link proporcionado.
       </div>
     );
   }
