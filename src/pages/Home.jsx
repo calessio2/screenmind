@@ -97,9 +97,13 @@ export default function Home() {
 
   const buildInteractiveList = () => {
     if (interactiveContents.length === 0) return "No hay contenidos interactivos disponibles.";
-    return interactiveContents.map(c =>
-      `ID: ${c.id} | Título: ${c.title} | Tipo: ${c.type} | Software: ${c.software || "N/A"} | Descripción: ${c.description || "N/A"} | Keywords: ${c.keywords || "N/A"}`
-    ).join('\n');
+    return interactiveContents.map(c => {
+      let entry = `ID: ${c.id} | Título: ${c.title} | Tipo: ${c.type} | Software: ${c.software || "N/A"} | Descripción: ${c.description || "N/A"} | Keywords: ${c.keywords || "N/A"}`;
+      if (c.transcript) {
+        entry += `\n  CONTENIDO TRANSCRITO DEL VIDEO: ${c.transcript.substring(0, 3000)}`;
+      }
+      return entry;
+    }).join('\n');
   };
 
   const handleAction = (action, processId, stepIndex, userText, interactiveId) => {
@@ -178,6 +182,8 @@ ${buildProcessList()}
 
 Contenidos interactivos disponibles (videos, simuladores, juegos):
 ${buildInteractiveList()}
+
+IMPORTANTE: Para los videos de YouTube, tenés acceso al CONTENIDO TRANSCRITO del video. Usá esa información para responder preguntas específicas sobre qué explica el video, qué pasos muestra, o qué temas cubre, sin necesidad de que el usuario lo mire completo.
 
 Contexto previo de la conversación:
 ${buildContext(messages) || "No hay contexto previo."}

@@ -34,7 +34,7 @@
       "properties": {
         "youtube_id": {
           "type": "string",
-          "description": "ID del video de YouTube (para tipo youtube)"
+          "description": "Link o ID del video de YouTube (para tipo youtube)"
         },
         "email_scenario": {
           "type": "object",
@@ -92,6 +92,10 @@
           }
         }
       }
+    },
+    "transcript": {
+      "type": "string",
+      "description": "Transcripci\u00f3n del contenido del video (generada autom\u00e1ticamente con InnerTube)"
     },
     "keywords": {
       "type": "string",

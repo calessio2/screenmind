@@ -17,6 +17,7 @@ export default function InteractiveContentForm({ content, onClose, onSaved }) {
   const [keywords, setKeywords] = useState("");
   const [config, setConfig] = useState({});
   const [saving, setSaving] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
 
   useEffect(() => {
     if (content) {
@@ -57,11 +58,28 @@ export default function InteractiveContentForm({ content, onClose, onSaved }) {
         config,
         status: "active",
       };
+      let savedId = content?.id;
       if (content?.id) {
         await base44.entities.InteractiveContent.update(content.id, payload);
       } else {
-        await base44.entities.InteractiveContent.create(payload);
+        const created = await base44.entities.InteractiveContent.create(payload);
+        savedId = created.id;
       }
+
+      if (type === "youtube" && config.youtube_id) {
+        setTranscribing(true);
+        try {
+          await base44.functions.invoke("fetchTranscript", {
+            content_id: savedId,
+            youtube_url: config.youtube_id,
+          });
+        } catch (transcriptErr) {
+          console.error("Transcript error:", transcriptErr);
+        } finally {
+          setTranscribing(false);
+        }
+      }
+
       onSaved();
     } catch (err) {
       alert("Error al guardar: " + err.message);
@@ -317,11 +335,11 @@ export default function InteractiveContentForm({ content, onClose, onSaved }) {
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !title.trim()}
+            disabled={saving || transcribing || !title.trim()}
             className="flex items-center gap-2 bg-white text-zinc-950 hover:bg-zinc-200 disabled:opacity-30 px-5 py-2 rounded-lg text-sm font-medium transition-colors"
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Guardar
+            {saving || transcribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {transcribing ? "Transcribiendo video..." : "Guardar"}
           </button>
         </div>
       </div>
