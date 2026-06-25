@@ -131,12 +131,44 @@ export default function Home() {
     if (!videoId) return;
     setActiveVideoTranscript(null);
     try {
-      const res = await base44.functions.invoke('fetchYoutubeTranscript', { video_id: videoId });
-      if (res.data?.transcript) {
-        setActiveVideoTranscript({ title: content.title, transcript: res.data.transcript });
+      // First try the backend function for the actual transcript
+      let transcriptData = null;
+      try {
+        const res = await base44.functions.invoke('fetchYoutubeTranscript', { video_id: videoId });
+        if (res.data?.transcript) {
+          transcriptData = res.data.transcript;
+        }
+      } catch (e) {
+        // Backend transcript failed — will fall back to Gemini
+      }
+
+      if (transcriptData) {
+        setActiveVideoTranscript({ title: content.title, transcript: transcriptData });
+      } else {
+        // Fallback: use Gemini with web search to get video content summary
+        const response = await base44.integrations.Core.InvokeLLM({
+          prompt: `Buscá información sobre este video de YouTube y proporcioná un resumen detallado de su contenido, incluyendo los pasos o conceptos principales que se explican.
+
+Título del video: ${content.title}
+URL: https://www.youtube.com/watch?v=${videoId}
+
+Si es un tutorial, incluí los pasos específicos. Si es informativo, resumí los puntos clave.`,
+          add_context_from_internet: true,
+          model: "gemini_3_flash",
+          response_json_schema: {
+            type: "object",
+            properties: {
+              summary: { type: "string", description: "Resumen detallado del contenido del video" }
+            },
+            required: ["summary"]
+          }
+        });
+        if (response.summary) {
+          setActiveVideoTranscript({ title: content.title, transcript: response.summary });
+        }
       }
     } catch (err) {
-      // transcript unavailable — bot will work without it
+      // both methods failed — bot will work without video context
     }
   };
 
