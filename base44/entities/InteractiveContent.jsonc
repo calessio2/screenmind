@@ -1,0 +1,113 @@
+{
+  "name": "InteractiveContent",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo del contenido interactivo"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n breve de qu\u00e9 ense\u00f1a o pr\u00e1ctica"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "youtube",
+        "email_simulator",
+        "drag_drop_game",
+        "software_simulator"
+      ],
+      "description": "Tipo de contenido interactivo"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda (ej: Email, Ofim\u00e1tica, Onboarding, Juegos)"
+    },
+    "software": {
+      "type": "string",
+      "description": "Software relacionado (ej: Gmail, Excel, Interno)"
+    },
+    "config": {
+      "type": "object",
+      "description": "Configuraci\u00f3n espec\u00edfica seg\u00fan el tipo de contenido",
+      "properties": {
+        "youtube_id": {
+          "type": "string",
+          "description": "ID del video de YouTube (para tipo youtube)"
+        },
+        "email_scenario": {
+          "type": "object",
+          "description": "Configuraci\u00f3n del simulador de email",
+          "properties": {
+            "to": {
+              "type": "string"
+            },
+            "subject": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            },
+            "show_cco": {
+              "type": "boolean"
+            },
+            "target_action": {
+              "type": "string",
+              "description": "Qu\u00e9 debe lograr el usuario"
+            }
+          }
+        },
+        "game_items": {
+          "type": "array",
+          "description": "Items para juego drag and drop",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "correct_zone": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "zones": {
+          "type": "array",
+          "description": "Zonas destino para drag and drop",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "keywords": {
+      "type": "string",
+      "description": "Palabras clave para b\u00fasqueda separadas por comas"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "draft"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "title",
+    "type"
+  ]
+}

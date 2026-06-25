@@ -10,6 +10,7 @@ import Home from './pages/Home';
 import Processes from './pages/Processes';
 import MyGoals from './pages/MyGoals';
 import GoalManagement from './pages/GoalManagement';
+import Library from './pages/Library';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
         <Route path="/procesos" element={<Processes />} />
         <Route path="/mis-objetivos" element={<MyGoals />} />
         <Route path="/gestion-objetivos" element={<GoalManagement />} />
+        <Route path="/biblioteca" element={<Library />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

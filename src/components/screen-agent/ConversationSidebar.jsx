@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, MessageSquare, Trash2, BookOpen, PanelLeft, Target } from "lucide-react";
+import { Plus, MessageSquare, Trash2, BookOpen, PanelLeft, Target, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import UserProfile from "./UserProfile";
@@ -30,6 +30,14 @@ export default function ConversationSidebar({ conversations, activeId, onSelect,
           title="Gestión de Procesos"
         >
           <BookOpen className="w-4 h-4" />
+        </Link>
+
+        <Link
+          to="/biblioteca"
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] transition-colors"
+          title="Biblioteca de Contenidos"
+        >
+          <LayoutGrid className="w-4 h-4" />
         </Link>
 
         <button
@@ -82,6 +90,12 @@ export default function ConversationSidebar({ conversations, activeId, onSelect,
           <Button variant="ghost" className="w-full justify-start text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] text-sm rounded-lg h-9 font-normal">
             <BookOpen className="w-4 h-4 mr-2" />
             Gestión de Procesos
+          </Button>
+        </Link>
+        <Link to="/biblioteca" className="block">
+          <Button variant="ghost" className="w-full justify-start text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] text-sm rounded-lg h-9 font-normal">
+            <LayoutGrid className="w-4 h-4 mr-2" />
+            Biblioteca
           </Button>
         </Link>
         {user?.role === "admin" && (

@@ -4,6 +4,7 @@ import ConversationSidebar from "@/components/screen-agent/ConversationSidebar";
 import ChatPanel from "@/components/screen-agent/ChatPanel";
 import DynamicPanel from "@/components/screen-agent/DynamicPanel";
 import { Menu, X } from "lucide-react";
+import InteractiveContentViewer from "@/components/interactive/InteractiveContentViewer";
 
 export default function Home() {
   const [conversations, setConversations] = useState([]);
@@ -21,6 +22,8 @@ export default function Home() {
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [screenshotRequested, setScreenshotRequested] = useState(false);
   const [processes, setProcesses] = useState([]);
+  const [interactiveContents, setInteractiveContents] = useState([]);
+  const [activeInteractive, setActiveInteractive] = useState(null);
   const [guidedMode, setGuidedMode] = useState(false);
   const [overlayStep, setOverlayStep] = useState(null);
   const [guidedStepNumber, setGuidedStepNumber] = useState(0);
@@ -30,6 +33,7 @@ export default function Home() {
   useEffect(() => {
     base44.entities.Conversation.list("-created_date", 50).then(setConversations);
     base44.entities.Process.filter({ status: "active" }).then(setProcesses).catch(() => {});
+    base44.entities.InteractiveContent.filter({ status: "active" }).then(setInteractiveContents).catch(() => {});
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
@@ -42,6 +46,7 @@ export default function Home() {
     }
     setPanelMode("default");
     setActiveProcess(null);
+    setActiveInteractive(null);
     setScreenshotRequested(false);
   }, [activeConvId]);
 
@@ -90,8 +95,21 @@ export default function Home() {
     ).join('\n');
   };
 
-  const handleAction = (action, processId, stepIndex, userText) => {
-    if (action === "show_guide" || action === "start_guided") {
+  const buildInteractiveList = () => {
+    if (interactiveContents.length === 0) return "No hay contenidos interactivos disponibles.";
+    return interactiveContents.map(c =>
+      `ID: ${c.id} | Título: ${c.title} | Tipo: ${c.type} | Software: ${c.software || "N/A"} | Descripción: ${c.description || "N/A"} | Keywords: ${c.keywords || "N/A"}`
+    ).join('\n');
+  };
+
+  const handleAction = (action, processId, stepIndex, userText, interactiveId) => {
+    if (action === "show_interactive" && interactiveId) {
+      const content = interactiveContents.find(c => c.id === interactiveId);
+      if (content) {
+        setActiveInteractive(content);
+        setPanelMode("interactive");
+      }
+    } else if (action === "show_guide" || action === "start_guided") {
       let process = processId ? processes.find(p => p.id === processId) : null;
       if (!process && userText) {
         const lower = userText.toLowerCase();
@@ -158,6 +176,9 @@ Respondé en español, de forma clara y concisa. Usá markdown con pasos numerad
 Procesos y guías disponibles:
 ${buildProcessList()}
 
+Contenidos interactivos disponibles (videos, simuladores, juegos):
+${buildInteractiveList()}
+
 Contexto previo de la conversación:
 ${buildContext(messages) || "No hay contexto previo."}
 
@@ -173,16 +194,21 @@ Decidí la mejor forma de ayudar al usuario usando una de estas acciones:
    - El usuario quiere APRENDER o HACER algo práctico (ej: "enseñame", "cómo hago", "quiero enviar", "necesito configurar")
    Esto activará el modo overlay con realidad aumentada que le va guiando clic por clic sobre su pantalla real.
 
-2. "show_guide" — Usá esta acción cuando:
+2. "show_interactive" — Usá esta acción cuando:
+   - Hay un contenido interactivo disponible que coincide con la consulta del usuario (video de YouTube, simulador de email, juego de arrastrar y soltar)
+   - El usuario quiere practicar, ver un video tutorial, o hacer una simulación interactiva
+   Incluí el interactive_id exacto del contenido correspondiente.
+
+3. "show_guide" — Usá esta acción cuando:
    - El usuario NO está compartiendo su pantalla y quiere ver una guía paso a paso, O
    - El usuario quiere consultar información, ver los pasos escritos, o está en modo lectura, O
    - El usuario pidió algo pero el contexto es de referencia/informativo, no de ejecución inmediata
 
-3. "request_screenshot" — Usá esta acción cuando:
+4. "request_screenshot" — Usá esta acción cuando:
    - Necesitás ver la pantalla del usuario pero NO la está compartiendo, y la consulta requiere contexto visual que solo la pantalla puede dar
 
-4. "none" — Usá esta acción cuando:
-   - La consulta no tiene relación con ningún proceso disponible
+5. "none" — Usá esta acción cuando:
+   - La consulta no tiene relación con ningún proceso o contenido disponible
    - Es una pregunta general, conversación, o algo que no requiere mostrar nada en el panel
 
 Si la consulta coincide con un proceso disponible, incluí el process_id exacto y el step_index del paso más relevante (0-based).
@@ -196,8 +222,9 @@ Respondé en español, de forma clara y concisa, explicando qué vas a hacer. Si
           type: "object",
           properties: {
             reply: { type: "string", description: "Respuesta al usuario en español" },
-            action: { type: "string", enum: ["none", "show_guide", "start_guided", "request_screenshot"] },
+            action: { type: "string", enum: ["none", "show_guide", "start_guided", "show_interactive", "request_screenshot"] },
             process_id: { type: "string", description: "ID del proceso si action es show_guide o start_guided" },
+            interactive_id: { type: "string", description: "ID del contenido interactivo si action es show_interactive" },
             step_index: { type: "number", description: "Índice del paso a mostrar (0-based)" }
           },
           required: ["reply", "action"]
@@ -216,7 +243,7 @@ Respondé en español, de forma clara y concisa, explicando qué vas a hacer. Si
       setMessages(final);
       await saveMessages(activeConvId, final);
 
-      handleAction(response.action, response.process_id, response.step_index, text);
+      handleAction(response.action, response.process_id, response.step_index, text, response.interactive_id);
     } catch (err) {
       const errorMsg = {
         role: "assistant",
@@ -526,6 +553,7 @@ Si no podés identificar el elemento o el usuario ya terminó, explicalo en la i
               onStartGuidedMode={startGuidedMode}
               onNextGuidedStep={nextGuidedStep}
               onStopGuidedMode={stopGuidedMode}
+              interactiveContent={activeInteractive}
             />
           </div>
         </div>
