@@ -91,7 +91,7 @@ export default function Home() {
   };
 
   const handleAction = (action, processId, stepIndex, userText) => {
-    if (action === "show_guide") {
+    if (action === "show_guide" || action === "start_guided") {
       let process = processId ? processes.find(p => p.id === processId) : null;
       if (!process && userText) {
         const lower = userText.toLowerCase();
@@ -104,6 +104,14 @@ export default function Home() {
       if (process) {
         setActiveProcess(process);
         setActiveStepIndex(typeof stepIndex === "number" ? stepIndex : 0);
+      }
+      if (action === "start_guided" && isSharing) {
+        setPanelMode("screen");
+        setGuidedMode(true);
+        setGuidedStepNumber(1);
+        setOverlayStep(null);
+        analyzeForGuidance();
+      } else {
         setPanelMode("guide");
       }
     } else if (action === "request_screenshot") {
@@ -129,6 +137,10 @@ export default function Home() {
 
       const isImageMsg = text.startsWith("📎 Imagen") || (image && !text.trim().replace("📎 Imagen enviada para análisis", "").trim());
 
+      const screenState = isSharing
+        ? "EL USUARIO ESTÁ COMPARTIENDO SU PANTALLA EN VIVO AHORA MISMO."
+        : "El usuario NO está compartiendo su pantalla.";
+
       const prompt = isImageMsg
         ? `Sos un Tutor de Adopción Digital corporativo. El usuario envió una imagen${text && !text.startsWith("📎") ? ` con el mensaje: "${text}"` : ""}. Analizala y ayudalo con lo que necesite.
 
@@ -138,7 +150,9 @@ ${buildContext(messages) || "No hay contexto previo."}
 Procesos disponibles:
 ${buildProcessList()}
 
-Respondé en español, de forma clara y concisa. Usá markdown con pasos numerados si corresponde. Si lo que ves coincide con un proceso disponible, usá "show_guide".`
+Estado: ${screenState}
+
+Respondé en español, de forma clara y concisa. Usá markdown con pasos numerados si corresponde. Si lo que ves coincide con un proceso disponible, usá "show_guide" o "start_guided" según corresponda.`
         : `Sos un Tutor de Adopción Digital corporativo. Ayudás a los empleados a usar software y seguir procesos internos de la empresa.
 
 Procesos y guías disponibles:
@@ -147,13 +161,33 @@ ${buildProcessList()}
 Contexto previo de la conversación:
 ${buildContext(messages) || "No hay contexto previo."}
 
+Estado: ${screenState}
+
 Consulta del usuario: ${text}
 ${image ? "\nNota: El usuario también adjuntó una imagen relacionada con su consulta. Analizala junto con el texto." : ""}
-Instrucciones:
-- Si la consulta del usuario coincide con un proceso disponible, O si el usuario pide que le muestres algo (ej: "mostrame", "mostrar", "quiero ver", " enseñame"), DEBÉS usar "show_guide" con el process_id exacto del proceso correspondiente y el step_index del paso más relevante (0-based).
-- Si necesitás ver la pantalla del usuario para ayudarlo, usá "request_screenshot".
-- Solo usá "none" si la consulta no tiene ninguna relación con los procesos disponibles.
-- Respondé en español, de forma clara y concisa, explicando qué vas a mostrar en el panel.`;
+
+Decidí la mejor forma de ayudar al usuario usando una de estas acciones:
+
+1. "start_guided" — Usá esta acción SIEMPRE que se cumplan AMBAS condiciones:
+   - El usuario está compartiendo su pantalla en vivo ahora mismo
+   - El usuario quiere APRENDER o HACER algo práctico (ej: "enseñame", "cómo hago", "quiero enviar", "necesito configurar")
+   Esto activará el modo overlay con realidad aumentada que le va guiando clic por clic sobre su pantalla real.
+
+2. "show_guide" — Usá esta acción cuando:
+   - El usuario NO está compartiendo su pantalla y quiere ver una guía paso a paso, O
+   - El usuario quiere consultar información, ver los pasos escritos, o está en modo lectura, O
+   - El usuario pidió algo pero el contexto es de referencia/informativo, no de ejecución inmediata
+
+3. "request_screenshot" — Usá esta acción cuando:
+   - Necesitás ver la pantalla del usuario pero NO la está compartiendo, y la consulta requiere contexto visual que solo la pantalla puede dar
+
+4. "none" — Usá esta acción cuando:
+   - La consulta no tiene relación con ningún proceso disponible
+   - Es una pregunta general, conversación, o algo que no requiere mostrar nada en el panel
+
+Si la consulta coincide con un proceso disponible, incluí el process_id exacto y el step_index del paso más relevante (0-based).
+
+Respondé en español, de forma clara y concisa, explicando qué vas a hacer. Si vas a usar "start_guided", decile al usuario que vas a guiarlo paso a paso sobre su pantalla.`;
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt,
@@ -162,8 +196,8 @@ Instrucciones:
           type: "object",
           properties: {
             reply: { type: "string", description: "Respuesta al usuario en español" },
-            action: { type: "string", enum: ["none", "show_guide", "request_screenshot"] },
-            process_id: { type: "string", description: "ID del proceso si action es show_guide" },
+            action: { type: "string", enum: ["none", "show_guide", "start_guided", "request_screenshot"] },
+            process_id: { type: "string", description: "ID del proceso si action es show_guide o start_guided" },
             step_index: { type: "number", description: "Índice del paso a mostrar (0-based)" }
           },
           required: ["reply", "action"]
@@ -175,7 +209,7 @@ Instrucciones:
         role: "assistant",
         content: response.reply,
         timestamp: new Date().toISOString(),
-        guide_ref: response.action === "show_guide" ? response.process_id : undefined,
+        guide_ref: (response.action === "show_guide" || response.action === "start_guided") ? response.process_id : undefined,
         request_screenshot: response.action === "request_screenshot",
       };
       const final = [...updated, assistantMsg];
@@ -376,14 +410,14 @@ Si no podés identificar una tarea clara, la instrucción debe preguntar al usua
     }
   }, [stream, messages, processes, captureScreenshot]);
 
-  const startGuidedMode = () => {
+  const startGuidedMode = useCallback(() => {
     setGuidedMode(true);
     setGuidedStepNumber(1);
     setOverlayStep(null);
     analyzeForGuidance();
-  };
+  }, [analyzeForGuidance]);
 
-  const nextGuidedStep = () => {
+  const nextGuidedStep = useCallback(() => {
     if (overlayStep?.is_final) {
       stopGuidedMode();
       return;
@@ -391,7 +425,7 @@ Si no podés identificar una tarea clara, la instrucción debe preguntar al usua
     setGuidedStepNumber((prev) => prev + 1);
     setOverlayStep(null);
     analyzeForGuidance();
-  };
+  }, [overlayStep, analyzeForGuidance]);
 
   const stopGuidedMode = () => {
     setGuidedMode(false);
