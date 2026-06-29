@@ -17,6 +17,10 @@ export default function EmailSimulator({ content }) {
   const needsCCO = scenario.show_cco === true;
   const targetAction = scenario.target_action || "Enviar el email correctamente";
 
+  const taskDescription = needsCCO
+    ? "Vas a redactar un email usando copia oculta (CCO). La copia oculta permite enviar un email a varias personas sin que vean las direcciones entre sí, a diferencia de «Para» y «CC» donde todos los destinatarios son visibles."
+    : description;
+
   // Build steps with completion status
   const steps = [];
   if (scenario.to) steps.push({
@@ -146,7 +150,7 @@ export default function EmailSimulator({ content }) {
       </div>
 
       <TaskSteps
-        description={description}
+        description={taskDescription}
         steps={steps.map((s) => s.label)}
         completedSteps={completedSteps}
       />
