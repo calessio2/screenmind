@@ -4,13 +4,13 @@ import ScreenPreview from "./ScreenPreview";
 import InteractiveContentViewer from "@/components/interactive/InteractiveContentViewer";
 import { BookOpen, Monitor, Sparkles } from "lucide-react";
 
-export default function DynamicPanel({ mode, process, stepIndex, onStepChange, stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing, guidedMode, overlayStep, guidedStepNumber, isAnalyzingStep, onStartGuidedMode, onNextGuidedStep, onStopGuidedMode, interactiveContent }) {
+export default function DynamicPanel({ mode, process, stepIndex, onStepChange, stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing, guidedMode, overlayStep, guidedStepNumber, isAnalyzingStep, onStartGuidedMode, onNextGuidedStep, onStopGuidedMode, interactiveContent, onSimulationEvent }) {
   if (mode === "guide" && process) {
     return <GuideViewer process={process} stepIndex={stepIndex} onStepChange={onStepChange} />;
   }
 
   if (mode === "interactive" && interactiveContent) {
-    return <InteractiveContentViewer content={interactiveContent} />;
+    return <InteractiveContentViewer content={interactiveContent} onProgress={onSimulationEvent} />;
   }
 
   if (mode === "screen") {

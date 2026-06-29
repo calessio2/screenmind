@@ -355,6 +355,76 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
     }
   }, [activeConvId, stream, messages, processes, captureScreenshot]);
 
+  const handleSimulationEvent = useCallback(async (event) => {
+    if (!activeConvId) return;
+
+    if (event.type === "success") {
+      const userMsg = { role: "user", content: "✅ Completé la simulación de email correctamente.", timestamp: new Date().toISOString() };
+      const updated = [...messages, userMsg];
+      setMessages(updated);
+      setIsLoading(true);
+      try {
+        const response = await base44.integrations.Core.InvokeLLM({
+          prompt: `Sos un Tutor de Adopción Digital corporativo. El usuario acaba de completar exitosamente una simulación de envío de email con copia oculta (CCO).
+
+Contexto previo:
+${buildContext(messages) || "No hay contexto previo."}
+
+El usuario completó todos los pasos correctamente. Felicitalo brevemente y ofrecele continuar aprendiendo o practicar otra cosa. Respondé en español, de forma breve y motivadora.`,
+          response_json_schema: {
+            type: "object",
+            properties: {
+              reply: { type: "string", description: "Respuesta al usuario en español" }
+            },
+            required: ["reply"]
+          },
+        });
+        const assistantMsg = { role: "assistant", content: response.reply, timestamp: new Date().toISOString() };
+        const final = [...updated, assistantMsg];
+        setMessages(final);
+        await saveMessages(activeConvId, final);
+      } catch (err) {
+        // silent fail
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (event.type === "error") {
+      const errorList = event.errors.map(e => `- ${e}`).join("\n");
+      const userMsg = { role: "user", content: `❌ Tuve errores en la simulación de email:\n${errorList}`, timestamp: new Date().toISOString() };
+      const updated = [...messages, userMsg];
+      setMessages(updated);
+      setIsLoading(true);
+      try {
+        const response = await base44.integrations.Core.InvokeLLM({
+          prompt: `Sos un Tutor de Adopción Digital corporativo. El usuario intentó enviar un email en el simulador pero cometió algunos errores.
+
+Contexto previo:
+${buildContext(messages) || "No hay contexto previo."}
+
+Errores del usuario:
+${errorList}
+
+Ayudalo a entender brevemente cómo corregirlos y animarlo a intentar de nuevo. Respondé en español, de forma clara y concisa.`,
+          response_json_schema: {
+            type: "object",
+            properties: {
+              reply: { type: "string", description: "Respuesta al usuario en español" }
+            },
+            required: ["reply"]
+          },
+        });
+        const assistantMsg = { role: "assistant", content: response.reply, timestamp: new Date().toISOString() };
+        const final = [...updated, assistantMsg];
+        setMessages(final);
+        await saveMessages(activeConvId, final);
+      } catch (err) {
+        // silent fail
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }, [activeConvId, messages]);
+
   const startSharing = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getDisplayMedia({
@@ -560,6 +630,7 @@ Si no podés identificar el elemento o el usuario ya terminó, explicalo en la i
               onNextGuidedStep={nextGuidedStep}
               onStopGuidedMode={stopGuidedMode}
               interactiveContent={activeInteractive}
+              onSimulationEvent={handleSimulationEvent}
             />
           </div>
         </div>

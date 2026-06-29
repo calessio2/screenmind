@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Send, Eye, EyeOff } from "lucide-react";
 import SimulationFeedback from "./SimulationFeedback";
 import TaskSteps from "./TaskSteps";
 
-export default function EmailSimulator({ content }) {
+export default function EmailSimulator({ content, onProgress }) {
   const scenario = content?.config?.email_scenario || {};
   const description = content?.description || "";
 
@@ -43,6 +43,18 @@ export default function EmailSimulator({ content }) {
 
   const completedSteps = steps.map((s, i) => (s.done ? i : -1)).filter((i) => i >= 0);
 
+  // Notify the chat tutor of progress whenever steps change
+  useEffect(() => {
+    if (onProgress) {
+      onProgress({
+        type: "progress",
+        total: steps.length,
+        completed: completedSteps.length,
+        steps: steps.map((s, i) => ({ label: s.label, done: completedSteps.includes(i) })),
+      });
+    }
+  }, [to, subject, body, cco, showCCO]);
+
   const handleSend = () => {
     const errors = [];
     if (scenario.to && to.trim() !== scenario.to) {
@@ -60,8 +72,10 @@ export default function EmailSimulator({ content }) {
 
     if (errors.length === 0) {
       setFeedback({ type: "success" });
+      if (onProgress) onProgress({ type: "success" });
     } else {
       setFeedback({ type: "error", errors });
+      if (onProgress) onProgress({ type: "error", errors });
     }
   };
 
