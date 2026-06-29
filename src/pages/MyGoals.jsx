@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Link } from "react-router-dom";
-import { Target, CheckCircle2, Circle, ChevronDown, ChevronRight, Calendar, TrendingUp, ArrowLeft, Award, BarChart3 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Target, CheckCircle2, Circle, ChevronDown, ChevronRight, Calendar, TrendingUp, ArrowLeft, Award, BarChart3, PlayCircle, BookOpen, Gamepad2 } from "lucide-react";
 import UsageStats from "@/components/screen-agent/UsageStats";
+
+const ACTION_BY_TYPE = {
+  youtube: { label: "Aprender", icon: BookOpen },
+  email_simulator: { label: "Practicar", icon: PlayCircle },
+  drag_drop_game: { label: "Jugar", icon: Gamepad2 },
+  software_simulator: { label: "Practicar", icon: PlayCircle },
+};
+const DEFAULT_ACTION = { label: "Practicar", icon: PlayCircle };
 
 const getProgress = (goal) => {
   if (!goal.steps || goal.steps.length === 0) return 0;
@@ -11,49 +19,64 @@ const getProgress = (goal) => {
   return Math.round((done / total) * 100);
 };
 
-function MilestoneItem({ step, onToggle, isToggling }) {
+function MilestoneItem({ step, onToggle, isToggling, linkedAction, onStartActivity }) {
   const target = step.target_count || 1;
   const current = step.current_count || (step.completed ? target : 0);
   const isCompleted = step.completed || current >= target;
   const hasCounter = target > 1;
+  const hasActivity = !!step.linked_content_id && !!linkedAction;
+  const Icon = linkedAction?.icon || PlayCircle;
+  const actionLabel = linkedAction?.label || "Practicar";
 
   return (
-    <button
-      onClick={onToggle}
-      disabled={isToggling || !!step.linked_content_id}
-      className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors text-left group ${isCompleted ? "opacity-60" : "hover:bg-white/[0.04]"} disabled:cursor-default`}
-    >
-      <div className="flex-shrink-0 mt-0.5">
-        {isCompleted ? (
-          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-        ) : (
-          <Circle className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className={`text-sm ${isCompleted ? "text-zinc-500 line-through" : "text-zinc-300"}`}>
-            {step.title}
-          </p>
-          {hasCounter && (
-            <span className={`text-[11px] flex-shrink-0 font-mono tabular-nums ${isCompleted ? "text-emerald-600" : "text-zinc-500"}`}>
-              {Math.min(current, target)}/{target}
-            </span>
+    <div className={`px-3 py-2.5 rounded-xl transition-colors text-left group ${isCompleted ? "opacity-60" : "hover:bg-white/[0.04]"}`}>
+      <div className="flex items-start gap-3">
+        <button
+          onClick={onToggle}
+          disabled={isToggling || !!step.linked_content_id}
+          className="flex-shrink-0 mt-0.5 disabled:cursor-default"
+        >
+          {isCompleted ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          ) : (
+            <Circle className={`w-4 h-4 ${step.linked_content_id ? "text-zinc-600" : "text-zinc-600 group-hover:text-zinc-400"} transition-colors`} />
+          )}
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <p className={`text-sm ${isCompleted ? "text-zinc-500 line-through" : "text-zinc-300"}`}>
+              {step.title}
+            </p>
+            {hasCounter && (
+              <span className={`text-[11px] flex-shrink-0 font-mono tabular-nums ${isCompleted ? "text-emerald-600" : "text-zinc-500"}`}>
+                {Math.min(current, target)}/{target}
+              </span>
+            )}
+          </div>
+          {step.description && (
+            <p className="text-[11px] text-zinc-600 mt-0.5 leading-relaxed">{step.description}</p>
+          )}
+          {hasCounter && !isCompleted && (
+            <div className="mt-1.5 h-1 bg-zinc-800 rounded-full overflow-hidden w-24">
+              <div
+                className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                style={{ width: `${Math.round((Math.min(current, target) / target) * 100)}%` }}
+              />
+            </div>
+          )}
+          {hasActivity && !isCompleted && (
+            <button
+              onClick={onStartActivity}
+              className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              <Icon className="w-3.5 h-3.5" />
+              Ir a {actionLabel.toLowerCase()}
+              <span aria-hidden>→</span>
+            </button>
           )}
         </div>
-        {step.description && (
-          <p className="text-[11px] text-zinc-600 mt-0.5 leading-relaxed">{step.description}</p>
-        )}
-        {hasCounter && !isCompleted && (
-          <div className="mt-1.5 h-1 bg-zinc-800 rounded-full overflow-hidden w-24">
-            <div
-              className="h-full bg-blue-600 rounded-full transition-all duration-300"
-              style={{ width: `${Math.round((Math.min(current, target) / target) * 100)}%` }}
-            />
-          </div>
-        )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -63,8 +86,11 @@ export default function MyGoals() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [toggling, setToggling] = useState(null);
+  const [interactiveContents, setInteractiveContents] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    base44.entities.InteractiveContent.filter({ status: "active" }).then(setInteractiveContents).catch(() => {});
     base44.auth.me().then(u => {
       setUser(u);
       base44.entities.Goal.filter({ assigned_to_id: u.id, status: "active" }, "-created_date", 50).then(g => {
@@ -73,6 +99,11 @@ export default function MyGoals() {
       }).catch(() => setLoading(false));
     }).catch(() => setLoading(false));
   }, []);
+
+  const handleStartActivity = (contentId) => {
+    // Navigate to home with a query param so the tutor opens the content
+    navigate(`/?content=${contentId}`);
+  };
 
   const toggleStep = async (goalId, stepIndex) => {
     const goal = goals.find(g => g.id === goalId);
@@ -213,14 +244,24 @@ export default function MyGoals() {
                   {isExpanded && goal.steps && goal.steps.length > 0 && (
                     <div className="border-t border-white/[0.04] px-3 pb-3 pt-1">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
-                        {goal.steps.map((step, i) => (
-                          <MilestoneItem
-                            key={i}
-                            step={step}
-                            onToggle={() => toggleStep(goal.id, i)}
-                            isToggling={toggling === `${goal.id}-${i}`}
-                          />
-                        ))}
+                        {goal.steps.map((step, i) => {
+                          const linkedContent = step.linked_content_id
+                            ? interactiveContents.find(c => c.id === step.linked_content_id)
+                            : null;
+                          const linkedAction = linkedContent
+                            ? (ACTION_BY_TYPE[linkedContent.type] || DEFAULT_ACTION)
+                            : null;
+                          return (
+                            <MilestoneItem
+                              key={i}
+                              step={step}
+                              onToggle={() => toggleStep(goal.id, i)}
+                              isToggling={toggling === `${goal.id}-${i}`}
+                              linkedAction={linkedAction}
+                              onStartActivity={() => handleStartActivity(step.linked_content_id)}
+                            />
+                          );
+                        })}
                       </div>
                       {goal.steps.some(s => s.linked_content_id) && (
                         <p className="text-[10px] text-zinc-600 mt-2 px-3">

@@ -35,6 +35,18 @@ export default function Home() {
     base44.entities.Process.filter({ status: "active" }).then(setProcesses).catch(() => {});
     base44.entities.InteractiveContent.filter({ status: "active" }).then(setInteractiveContents).catch(() => {});
     base44.auth.me().then(setUser).catch(() => {});
+
+    // If navigated with ?content=ID, open that interactive content immediately
+    const urlParams = new URLSearchParams(window.location.search);
+    const contentId = urlParams.get("content");
+    if (contentId) {
+      base44.entities.InteractiveContent.get(contentId).then((content) => {
+        if (content) {
+          setActiveInteractive(content);
+          setPanelMode("interactive");
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
