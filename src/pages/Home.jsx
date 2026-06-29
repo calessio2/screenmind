@@ -29,6 +29,7 @@ export default function Home() {
   const [guidedStepNumber, setGuidedStepNumber] = useState(0);
   const [isAnalyzingStep, setIsAnalyzingStep] = useState(false);
   const canvasRef = useRef(document.createElement("canvas"));
+  const pendingPromptRef = useRef(null);
 
   useEffect(() => {
     base44.entities.Conversation.list("-created_date", 50).then(setConversations);
@@ -45,6 +46,19 @@ export default function Home() {
           setActiveInteractive(content);
           setPanelMode("interactive");
         }
+      }).catch(() => {});
+    }
+    // If navigated with ?prompt=..., auto-create a conversation and send the prompt
+    const promptParam = urlParams.get("prompt");
+    if (promptParam) {
+      pendingPromptRef.current = promptParam;
+      base44.entities.Conversation.create({
+        title: `Sesión ${new Date().toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`,
+        messages: [],
+        status: "active",
+      }).then(conv => {
+        setConversations(prev => [conv, ...prev]);
+        setActiveConvId(conv.id);
       }).catch(() => {});
     }
   }, []);
@@ -71,7 +85,17 @@ export default function Home() {
     setConversations((prev) => [conv, ...prev]);
     setActiveConvId(conv.id);
     setSidebarOpen(false);
+    return conv;
   };
+
+  // When a pending prompt is set and a new conversation is created, send it automatically
+  useEffect(() => {
+    if (!activeConvId || !pendingPromptRef.current) return;
+    const prompt = pendingPromptRef.current;
+    pendingPromptRef.current = null;
+    sendMessage(prompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConvId]);
 
   const deleteConversation = async (id) => {
     await base44.entities.Conversation.delete(id);

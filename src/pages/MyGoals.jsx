@@ -64,13 +64,13 @@ function MilestoneItem({ step, onToggle, isToggling, linkedAction, onStartActivi
               />
             </div>
           )}
-          {hasActivity && !isCompleted && (
+          {!isCompleted && (
             <button
               onClick={onStartActivity}
-              className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-400 hover:text-blue-300 transition-colors"
+              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[11px] font-medium text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 transition-colors"
             >
-              <Icon className="w-3.5 h-3.5" />
-              Ir a {actionLabel.toLowerCase()}
+              <Icon className="w-3 h-3" />
+              {hasActivity ? `Ir a ${actionLabel.toLowerCase()}` : "Ir al tutor"}
               <span aria-hidden>→</span>
             </button>
           )}
@@ -100,9 +100,13 @@ export default function MyGoals() {
     }).catch(() => setLoading(false));
   }, []);
 
-  const handleStartActivity = (contentId) => {
-    // Navigate to home with a query param so the tutor opens the content
-    navigate(`/?content=${contentId}`);
+  const handleStartActivity = (contentId, step) => {
+    if (contentId) {
+      navigate(`/?content=${contentId}`);
+    } else if (step) {
+      const prompt = `Quiero practicar: ${step.title}${step.description ? ` — ${step.description}` : ""}`;
+      navigate(`/?prompt=${encodeURIComponent(prompt)}`);
+    }
   };
 
   const toggleStep = async (goalId, stepIndex) => {
@@ -258,7 +262,7 @@ export default function MyGoals() {
                               onToggle={() => toggleStep(goal.id, i)}
                               isToggling={toggling === `${goal.id}-${i}`}
                               linkedAction={linkedAction}
-                              onStartActivity={() => handleStartActivity(step.linked_content_id)}
+                              onStartActivity={() => handleStartActivity(step.linked_content_id, step)}
                             />
                           );
                         })}
