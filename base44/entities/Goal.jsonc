@@ -34,20 +34,34 @@
         "properties": {
           "title": {
             "type": "string",
-            "description": "T\u00edtulo del paso"
+            "description": "T\u00edtulo del hito"
           },
           "description": {
             "type": "string",
-            "description": "Descripci\u00f3n o instrucci\u00f3n del paso"
+            "description": "Descripci\u00f3n o instrucci\u00f3n del hito"
+          },
+          "linked_content_id": {
+            "type": "string",
+            "description": "ID del contenido interactivo que acumula progreso en este hito al ser realizado"
+          },
+          "target_count": {
+            "type": "number",
+            "default": 1,
+            "description": "Cu\u00e1ntas veces debe completarse la acci\u00f3n para dar por cumplido el hito"
+          },
+          "current_count": {
+            "type": "number",
+            "default": 0,
+            "description": "Cu\u00e1ntas veces se complet\u00f3 la acci\u00f3n hasta ahora"
           },
           "completed": {
             "type": "boolean",
             "default": false,
-            "description": "Si el paso est\u00e1 completado"
+            "description": "Si el hito est\u00e1 completado (current_count >= target_count)"
           }
         }
       },
-      "description": "Pasos del objetivo para medir el progreso"
+      "description": "Hitos del objetivo para medir el progreso"
     },
     "status": {
       "type": "string",

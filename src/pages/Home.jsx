@@ -364,31 +364,21 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
       setMessages(updated);
       setIsLoading(true);
 
-      // Auto-complete related goal steps based on the simulation that was completed
+      // Accumulate progress on goal milestones linked to the activity that was just completed
       try {
         const me = await base44.auth.me();
         const myGoals = await base44.entities.Goal.filter({ assigned_to_id: me.id, status: "active" });
-
-        // Build keywords from the active interactive content
-        const content = activeInteractive;
-        const contentKeywords = [];
-        if (content?.title) contentKeywords.push(...content.title.toLowerCase().split(/\s+/));
-        if (content?.keywords) contentKeywords.push(...content.keywords.toLowerCase().split(",").map(k => k.trim()));
-        if (content?.software) contentKeywords.push(content.software.toLowerCase());
-        const uniqueKeywords = [...new Set(contentKeywords.filter(k => k.length > 2))];
+        const completedContentId = activeInteractive?.id;
 
         for (const goal of myGoals) {
           if (!goal.steps || goal.steps.length === 0) continue;
           let changed = false;
           const newSteps = goal.steps.map(step => {
-            if (step.completed) return step;
-            const stepText = `${step.title || ""} ${step.description || ""}`.toLowerCase();
-            const matches = uniqueKeywords.some(kw => stepText.includes(kw));
-            if (matches) {
-              changed = true;
-              return { ...step, completed: true };
-            }
-            return step;
+            if (step.completed || !step.linked_content_id || step.linked_content_id !== completedContentId) return step;
+            const target = step.target_count || 1;
+            const newCount = (step.current_count || 0) + 1;
+            changed = true;
+            return { ...step, current_count: newCount, completed: newCount >= target };
           });
           if (changed) {
             const allCompleted = newSteps.every(s => s.completed);

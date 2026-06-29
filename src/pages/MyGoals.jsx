@@ -6,9 +6,56 @@ import UsageStats from "@/components/screen-agent/UsageStats";
 
 const getProgress = (goal) => {
   if (!goal.steps || goal.steps.length === 0) return 0;
-  const completed = goal.steps.filter(s => s.completed).length;
-  return Math.round((completed / goal.steps.length) * 100);
+  const total = goal.steps.reduce((sum, s) => sum + (s.target_count || 1), 0);
+  const done = goal.steps.reduce((sum, s) => sum + Math.min(s.current_count || (s.completed ? (s.target_count || 1) : 0), s.target_count || 1), 0);
+  return Math.round((done / total) * 100);
 };
+
+function MilestoneItem({ step, onToggle, isToggling }) {
+  const target = step.target_count || 1;
+  const current = step.current_count || (step.completed ? target : 0);
+  const isCompleted = step.completed || current >= target;
+  const hasCounter = target > 1;
+
+  return (
+    <button
+      onClick={onToggle}
+      disabled={isToggling || !!step.linked_content_id}
+      className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors text-left group ${isCompleted ? "opacity-60" : "hover:bg-white/[0.04]"} disabled:cursor-default`}
+    >
+      <div className="flex-shrink-0 mt-0.5">
+        {isCompleted ? (
+          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+        ) : (
+          <Circle className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <p className={`text-sm ${isCompleted ? "text-zinc-500 line-through" : "text-zinc-300"}`}>
+            {step.title}
+          </p>
+          {hasCounter && (
+            <span className={`text-[11px] flex-shrink-0 font-mono tabular-nums ${isCompleted ? "text-emerald-600" : "text-zinc-500"}`}>
+              {Math.min(current, target)}/{target}
+            </span>
+          )}
+        </div>
+        {step.description && (
+          <p className="text-[11px] text-zinc-600 mt-0.5 leading-relaxed">{step.description}</p>
+        )}
+        {hasCounter && !isCompleted && (
+          <div className="mt-1.5 h-1 bg-zinc-800 rounded-full overflow-hidden w-24">
+            <div
+              className="h-full bg-blue-600 rounded-full transition-all duration-300"
+              style={{ width: `${Math.round((Math.min(current, target) / target) * 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}
 
 export default function MyGoals() {
   const [goals, setGoals] = useState([]);
@@ -28,12 +75,16 @@ export default function MyGoals() {
   }, []);
 
   const toggleStep = async (goalId, stepIndex) => {
-    setToggling(`${goalId}-${stepIndex}`);
     const goal = goals.find(g => g.id === goalId);
-    if (!goal) return;
-    const newSteps = goal.steps.map((s, i) =>
-      i === stepIndex ? { ...s, completed: !s.completed } : s
-    );
+    if (!goal || goal.steps[stepIndex]?.linked_content_id) return;
+    setToggling(`${goalId}-${stepIndex}`);
+    const newSteps = goal.steps.map((s, i) => {
+      if (i !== stepIndex) return s;
+      const target = s.target_count || 1;
+      const wasCompleted = s.completed || (s.current_count || 0) >= target;
+      const newCount = wasCompleted ? 0 : target;
+      return { ...s, current_count: newCount, completed: !wasCompleted };
+    });
     const allCompleted = newSteps.every(s => s.completed);
     const newStatus = allCompleted ? "completed" : "active";
     await base44.entities.Goal.update(goalId, { steps: newSteps, status: newStatus });
@@ -117,6 +168,8 @@ export default function MyGoals() {
               const progress = getProgress(goal);
               const isExpanded = expandedId === goal.id;
               const isCompleted = goal.status === "completed";
+              const completedSteps = goal.steps?.filter(s => s.completed).length || 0;
+              const totalSteps = goal.steps?.length || 0;
               return (
                 <div key={goal.id} className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
                   <button
@@ -138,10 +191,13 @@ export default function MyGoals() {
                         <span className="text-xs text-zinc-500 flex-shrink-0">{progress}%</span>
                       </div>
                       {goal.description && <p className="text-xs text-zinc-600 mb-2 line-clamp-1">{goal.description}</p>}
-                      <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-500 ${isCompleted ? "bg-emerald-500" : "bg-amber-500"}`} style={{ width: `${progress}%` }} />
                       </div>
                       <div className="flex items-center gap-3 mt-2">
+                        {totalSteps > 0 && (
+                          <span className="text-[10px] text-zinc-600">{completedSteps}/{totalSteps} hitos</span>
+                        )}
                         {goal.category && <span className="text-[10px] text-zinc-600">{goal.category}</span>}
                         {goal.due_date && (
                           <span className="text-[10px] text-zinc-600 flex items-center gap-1">
@@ -155,29 +211,22 @@ export default function MyGoals() {
                   </button>
 
                   {isExpanded && goal.steps && goal.steps.length > 0 && (
-                    <div className="px-4 pb-4 pl-12 space-y-1">
-                      {goal.steps.map((step, i) => (
-                        <button
-                          key={i}
-                          onClick={() => toggleStep(goal.id, i)}
-                          disabled={toggling === `${goal.id}-${i}`}
-                          className="w-full flex items-start gap-2.5 p-2 rounded-lg hover:bg-white/[0.03] transition-colors text-left disabled:opacity-50"
-                        >
-                          {step.completed ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                          ) : (
-                            <Circle className="w-4 h-4 text-zinc-700 flex-shrink-0 mt-0.5" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs ${step.completed ? "text-zinc-600 line-through" : "text-zinc-300"}`}>
-                              {step.title}
-                            </p>
-                            {step.description && (
-                              <p className="text-[11px] text-zinc-600 mt-0.5">{step.description}</p>
-                            )}
-                          </div>
-                        </button>
-                      ))}
+                    <div className="border-t border-white/[0.04] px-3 pb-3 pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
+                        {goal.steps.map((step, i) => (
+                          <MilestoneItem
+                            key={i}
+                            step={step}
+                            onToggle={() => toggleStep(goal.id, i)}
+                            isToggling={toggling === `${goal.id}-${i}`}
+                          />
+                        ))}
+                      </div>
+                      {goal.steps.some(s => s.linked_content_id) && (
+                        <p className="text-[10px] text-zinc-600 mt-2 px-3">
+                          Los hitos con actividad vinculada se acumulan automáticamente al completar la actividad en el tutor.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
