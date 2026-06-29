@@ -363,6 +363,42 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
       const updated = [...messages, userMsg];
       setMessages(updated);
       setIsLoading(true);
+
+      // Auto-complete related goal steps based on the simulation that was completed
+      try {
+        const me = await base44.auth.me();
+        const myGoals = await base44.entities.Goal.filter({ assigned_to_id: me.id, status: "active" });
+
+        // Build keywords from the active interactive content
+        const content = activeInteractive;
+        const contentKeywords = [];
+        if (content?.title) contentKeywords.push(...content.title.toLowerCase().split(/\s+/));
+        if (content?.keywords) contentKeywords.push(...content.keywords.toLowerCase().split(",").map(k => k.trim()));
+        if (content?.software) contentKeywords.push(content.software.toLowerCase());
+        const uniqueKeywords = [...new Set(contentKeywords.filter(k => k.length > 2))];
+
+        for (const goal of myGoals) {
+          if (!goal.steps || goal.steps.length === 0) continue;
+          let changed = false;
+          const newSteps = goal.steps.map(step => {
+            if (step.completed) return step;
+            const stepText = `${step.title || ""} ${step.description || ""}`.toLowerCase();
+            const matches = uniqueKeywords.some(kw => stepText.includes(kw));
+            if (matches) {
+              changed = true;
+              return { ...step, completed: true };
+            }
+            return step;
+          });
+          if (changed) {
+            const allCompleted = newSteps.every(s => s.completed);
+            await base44.entities.Goal.update(goal.id, { steps: newSteps, status: allCompleted ? "completed" : "active" });
+          }
+        }
+      } catch (err) {
+        // silent fail - goal update shouldn't block the chat
+      }
+
       try {
         const response = await base44.integrations.Core.InvokeLLM({
           prompt: `Sos un Tutor de Adopción Digital corporativo. El usuario acaba de completar exitosamente una simulación de envío de email con copia oculta (CCO).
