@@ -33,7 +33,7 @@ export default function EmailSimulator({ content }) {
   });
   if (scenario.body) steps.push({
     label: "Escribí el cuerpo del email",
-    done: body.trim() === scenario.body
+    done: body.trim().length > 0
   });
   steps.push({ label: "Hacé clic en «Enviar» para completar la tarea", done: false });
 
@@ -49,6 +49,9 @@ export default function EmailSimulator({ content }) {
     }
     if (scenario.subject && subject.trim() !== scenario.subject) {
       errors.push(`El asunto debe ser «${scenario.subject}».`);
+    }
+    if (scenario.body && body.trim().length === 0) {
+      errors.push("El cuerpo del email está vacío. Escribí un mensaje antes de enviar.");
     }
 
     if (errors.length === 0) {
