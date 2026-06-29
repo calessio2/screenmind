@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Send, Eye, EyeOff } from "lucide-react";
+import { Send, Eye, EyeOff, UserCircle2, Play } from "lucide-react";
 import SimulationFeedback from "./SimulationFeedback";
 import TaskSteps from "./TaskSteps";
 
 export default function EmailSimulator({ content, onProgress }) {
   const scenario = content?.config?.email_scenario || {};
   const description = content?.description || "";
+  const narrative = content?.config?.narrative || description;
 
+  const [started, setStarted] = useState(false);
   const [to, setTo] = useState(scenario.to || "");
   const [subject, setSubject] = useState(scenario.subject || "");
   const [body, setBody] = useState(scenario.body || "");
@@ -83,12 +85,51 @@ export default function EmailSimulator({ content, onProgress }) {
 
   const handleComplete = () => {
     setFeedback(null);
+    setStarted(false);
     setTo(scenario.to || "");
     setSubject(scenario.subject || "");
     setBody(scenario.body || "");
     setCco("");
     setShowCCO(false);
   };
+
+  if (!started) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-zinc-950 p-6">
+        <div className="max-w-lg w-full">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="text-xs text-zinc-500 font-medium uppercase tracking-wide">Simulador de Email</span>
+          </div>
+
+          <h2 className="text-xl font-semibold text-zinc-100 mb-1">{content?.title}</h2>
+
+          {narrative && (
+            <div className="mt-4 mb-5 bg-white/[0.04] border border-white/[0.08] rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <UserCircle2 className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <span className="text-xs font-medium text-amber-400 uppercase tracking-wide">Contexto del ejercicio</span>
+              </div>
+              <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{narrative}</p>
+            </div>
+          )}
+
+          <div className="bg-blue-950/40 border border-blue-800/30 rounded-xl p-4 mb-6">
+            <p className="text-xs text-blue-300 font-medium mb-1">🎯 Tu tarea</p>
+            <p className="text-sm text-blue-200">{scenario.target_action || "Completar el ejercicio de email"}</p>
+          </div>
+
+          <button
+            onClick={() => setStarted(true)}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-colors"
+          >
+            <Play className="w-4 h-4" />
+            Comenzar ejercicio
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex flex-col h-full bg-zinc-950">
