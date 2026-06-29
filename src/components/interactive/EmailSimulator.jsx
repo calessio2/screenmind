@@ -1,65 +1,82 @@
 import React, { useState } from "react";
-import { Send, Eye, EyeOff, Check } from "lucide-react";
+import { Send, Eye, EyeOff } from "lucide-react";
+import SimulationFeedback from "./SimulationFeedback";
+import TaskSteps from "./TaskSteps";
 
-export default function EmailSimulator({ config }) {
-  const scenario = config?.email_scenario || {};
+export default function EmailSimulator({ content }) {
+  const scenario = content?.config?.email_scenario || {};
+  const description = content?.description || "";
+
   const [to, setTo] = useState(scenario.to || "");
   const [subject, setSubject] = useState(scenario.subject || "");
   const [body, setBody] = useState(scenario.body || "");
   const [showCCO, setShowCCO] = useState(false);
   const [cco, setCco] = useState("");
-  const [sent, setSent] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
   const needsCCO = scenario.show_cco === true;
   const targetAction = scenario.target_action || "Enviar el email correctamente";
 
-  const handleSend = () => {
-    const checks = [];
-    if (scenario.to && to.trim() !== scenario.to) checks.push("El destinatario no coincide");
-    if (needsCCO && !cco.trim()) checks.push("Falta agregar el destinatario en copia oculta (CCO)");
-    if (scenario.subject && subject.trim() !== scenario.subject) checks.push("El asunto no coincide");
+  // Build steps with completion status
+  const steps = [];
+  if (scenario.to) steps.push({
+    label: `Escribí «${scenario.to}» en el campo Para`,
+    done: to.trim() === scenario.to
+  });
+  if (scenario.subject) steps.push({
+    label: `Escribí «${scenario.subject}» en el Asunto`,
+    done: subject.trim() === scenario.subject
+  });
+  if (needsCCO) steps.push({
+    label: "Hacé clic en «Mostrar CCO» y agregá un destinatario en copia oculta",
+    done: showCCO && cco.trim().length > 0
+  });
+  if (scenario.body) steps.push({
+    label: "Escribí el cuerpo del email",
+    done: body.trim() === scenario.body
+  });
+  steps.push({ label: "Hacé clic en «Enviar» para completar la tarea", done: false });
 
-    if (checks.length === 0) {
-      setSent(true);
+  const completedSteps = steps.map((s, i) => (s.done ? i : -1)).filter((i) => i >= 0);
+
+  const handleSend = () => {
+    const errors = [];
+    if (scenario.to && to.trim() !== scenario.to) {
+      errors.push(`El destinatario en «Para» debe ser «${scenario.to}». Revisá que esté bien escrito.`);
+    }
+    if (needsCCO && !cco.trim()) {
+      errors.push("Falta agregar un destinatario en copia oculta (CCO). Acordate de hacer clic en «Mostrar CCO» primero para revelar el campo.");
+    }
+    if (scenario.subject && subject.trim() !== scenario.subject) {
+      errors.push(`El asunto debe ser «${scenario.subject}».`);
+    }
+
+    if (errors.length === 0) {
+      setFeedback({ type: "success" });
     } else {
-      alert(`Revisá: ${checks.join(", ")}`);
+      setFeedback({ type: "error", errors });
     }
   };
 
-  if (sent) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full bg-zinc-950 p-6">
-        <div className="w-16 h-16 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center mb-4">
-          <Check className="w-8 h-8 text-green-400" />
-        </div>
-        <h3 className="text-zinc-200 font-medium text-sm mb-2">¡Email enviado correctamente!</h3>
-        <p className="text-zinc-600 text-xs text-center max-w-xs">
-          Completaste la tarea: {targetAction}
-        </p>
-        <button
-          onClick={() => {
-            setSent(false);
-            setTo(scenario.to || "");
-            setSubject(scenario.subject || "");
-            setBody(scenario.body || "");
-            setCco("");
-            setShowCCO(false);
-          }}
-          className="mt-6 text-xs text-blue-400 hover:text-blue-300"
-        >
-          Intentar de nuevo
-        </button>
-      </div>
-    );
-  }
+  const handleRetry = () => setFeedback(null);
+
+  const handleComplete = () => {
+    setFeedback(null);
+    setTo(scenario.to || "");
+    setSubject(scenario.subject || "");
+    setBody(scenario.body || "");
+    setCco("");
+    setShowCCO(false);
+  };
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950">
+    <div className="relative flex flex-col h-full bg-zinc-950">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]">
         <span className="w-2 h-2 rounded-full bg-blue-500" />
         <span className="text-xs text-zinc-400 font-medium">Simulador de Email</span>
-        <span className="text-[10px] text-zinc-600 ml-auto">Tarea: {targetAction}</span>
+        <span className="text-[10px] text-zinc-600 ml-auto truncate max-w-[200px]">Tarea: {targetAction}</span>
       </div>
+
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="bg-zinc-100 border-b border-zinc-200 px-4 py-3 flex items-center gap-2">
@@ -124,6 +141,21 @@ export default function EmailSimulator({ config }) {
           </div>
         </div>
       </div>
+
+      <TaskSteps
+        description={description}
+        steps={steps.map((s) => s.label)}
+        completedSteps={completedSteps}
+      />
+
+      {feedback && (
+        <SimulationFeedback
+          type={feedback.type}
+          errors={feedback.errors}
+          onRetry={handleRetry}
+          onComplete={handleComplete}
+        />
+      )}
     </div>
   );
 }

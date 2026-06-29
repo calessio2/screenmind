@@ -22,7 +22,7 @@ export default function InteractiveContentViewer({ content }) {
     case "youtube":
       return <YoutubeEmbed config={content.config} />;
     case "email_simulator":
-      return <EmailSimulator config={content.config} />;
+      return <EmailSimulator content={content} />;
     case "drag_drop_game":
       return <DragDropGame config={content.config} />;
     default:
