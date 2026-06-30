@@ -1,9 +1,27 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Plus, X, Image, Monitor } from "lucide-react";
+import { Send, Loader2, Plus, X, Image, Monitor, Youtube, Mail, Puzzle, PenTool, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MessageBubble from "./MessageBubble";
 
-export default function ChatPanel({ messages, onSendMessage, isLoading, isSharing, onStartSharing, onStopSharing }) {
+const typeIcon = (type) => {
+  switch (type) {
+    case "youtube": return <Youtube className="w-3.5 h-3.5 text-red-400" />;
+    case "email_simulator": return <Mail className="w-3.5 h-3.5 text-blue-400" />;
+    case "drag_drop_game": return <Puzzle className="w-3.5 h-3.5 text-emerald-400" />;
+    case "signature_simulator": return <PenTool className="w-3.5 h-3.5 text-amber-400" />;
+    default: return <Play className="w-3.5 h-3.5 text-zinc-400" />;
+  }
+};
+
+const typeLabel = (type) => ({
+  youtube: "Video",
+  email_simulator: "Simulador",
+  drag_drop_game: "Juego",
+  signature_simulator: "Simulador",
+  software_simulator: "Simulador",
+})[type] || "Actividad";
+
+export default function ChatPanel({ messages, onSendMessage, isLoading, isSharing, onStartSharing, onStopSharing, interactiveContents = [], onSelectActivity }) {
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState(null);
   const [pendingImageUrl, setPendingImageUrl] = useState(null);
@@ -129,7 +147,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, isSharin
               <Plus className={`w-4 h-4 transition-transform ${toolsOpen ? "rotate-45" : ""}`} />
             </button>
             {toolsOpen && (
-              <div className="absolute bottom-11 left-0 w-44 bg-zinc-900 border border-white/[0.08] rounded-xl shadow-2xl py-1 z-50">
+              <div className="absolute bottom-11 left-0 w-72 max-h-[60vh] overflow-y-auto bg-zinc-900 border border-white/[0.08] rounded-xl shadow-2xl py-1 z-50">
                 <button
                   type="button"
                   onClick={() => { fileInputRef.current?.click(); setToolsOpen(false); }}
@@ -146,6 +164,27 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, isSharin
                   <Monitor className={`w-4 h-4 ${isSharing ? "text-red-400" : "text-zinc-500"}`} />
                   {isSharing ? "Detener pantalla" : "Compartir pantalla"}
                 </button>
+                {interactiveContents.length > 0 && (
+                  <>
+                    <div className="px-3 pt-2.5 pb-1 text-[10px] uppercase tracking-wider text-zinc-600">
+                      Actividades sugeridas
+                    </div>
+                    {interactiveContents.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => { onSelectActivity?.(c); setToolsOpen(false); }}
+                        className="w-full flex items-start gap-2.5 px-3 py-2 text-left hover:bg-white/[0.06] transition-colors"
+                      >
+                        <span className="mt-0.5 flex-shrink-0">{typeIcon(c.type)}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm text-zinc-200 truncate">{c.title}</span>
+                          <span className="block text-[11px] text-zinc-500 truncate">{typeLabel(c.type)}{c.software ? ` · ${c.software}` : ""}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>
