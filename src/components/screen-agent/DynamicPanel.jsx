@@ -47,7 +47,7 @@ export default function DynamicPanel({ mode, process, stepIndex, onStepChange, s
         {[
           { icon: BookOpen, label: "Guías visuales" },
           { icon: Monitor, label: "Pantalla en vivo" },
-          { icon: Youtube, label: "Videos explicativos" },
+          { icon: Youtube, label: "Videos" },
           { icon: MousePointerClick, label: "Simuladores" },
           { icon: Layers, label: "Interactivos" },
           { icon: Sparkles, label: "Tests" },
