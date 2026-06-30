@@ -654,7 +654,7 @@ Si no podés identificar el elemento o el usuario ya terminó, explicalo en la i
               onClick={createConversation}
               className="bg-white text-zinc-950 hover:bg-zinc-200 px-6 py-2.5 rounded-xl font-medium text-sm transition-colors"
             >
-              Iniciar nueva sesión
+              Nuevo chat
             </button>
           </div>
         </div>
