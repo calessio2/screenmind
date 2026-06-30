@@ -78,8 +78,8 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, isSharin
   return (
     <div className="flex flex-col h-full bg-zinc-950 overflow-hidden">
       <div className="px-4 py-3 border-b border-white/[0.06]">
-        <h2 className="text-sm font-medium text-zinc-200">Tutor de Adopción Digital</h2>
-        <p className="text-[11px] text-zinc-600 mt-0.5">Tu guía inteligente para software y procesos</p>
+        <h2 className="text-sm font-medium text-zinc-200">LIP Tutor</h2>
+        <p className="text-[11px] text-zinc-600 mt-0.5">Tu plataforma de aprendizaje interactivo</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5">

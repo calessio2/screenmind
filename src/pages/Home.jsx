@@ -646,9 +646,9 @@ Si no podés identificar el elemento o el usuario ya terminó, explicalo en la i
             <div className="w-16 h-16 mx-auto rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-8">
               <span className="text-3xl">🎓</span>
             </div>
-            <h1 className="text-3xl font-semibold text-zinc-100 mb-3 tracking-tight">Tutor de Adopción Digital</h1>
+            <h1 className="text-3xl font-semibold text-zinc-100 mb-3 tracking-tight">LIP Tutor</h1>
             <p className="text-zinc-500 mb-8 text-sm leading-relaxed">
-              Tu asistente inteligente para software y procesos corporativos. Aprendé, consultá y recibí soporte en tiempo real.
+              Tu plataforma de aprendizaje interactivo. Aprendé, practicá y consultá con guías, simuladores, videos y más.
             </p>
             <button
               onClick={createConversation}

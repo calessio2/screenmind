@@ -68,7 +68,7 @@ export default function ConversationSidebar({ conversations, activeId, onSelect,
   return (
     <div className="w-64 bg-zinc-950 border-r border-white/[0.06] flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-3 border-b border-white/[0.06]">
-        <span className="text-sm font-medium text-zinc-200">Tutor Digital</span>
+        <span className="text-sm font-medium text-zinc-200">LIP Tutor</span>
         <button
           onClick={onToggleCollapse}
           className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors"
