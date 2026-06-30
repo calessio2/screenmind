@@ -88,9 +88,9 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, isSharin
             <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
               <span className="text-xl">🎓</span>
             </div>
-            <p className="text-zinc-300 text-sm font-medium mb-1.5">¡Hola! Soy tu Tutor Digital</p>
+            <p className="text-zinc-300 text-sm font-medium mb-1.5">¡Hola! Soy LIP, tu tutor digital</p>
             <p className="text-zinc-600 text-xs max-w-xs leading-relaxed">
-              Preguntame cómo usar un software, seguir un proceso o resolver un problema. También puedo pedirte que compartas tu pantalla si necesitás que te guíe en vivo.
+              Puedo ayudarte a aprender, practicar y resolver dudas con guías, videos, simuladores, casos y más. Contame qué querés hacer hoy.
             </p>
           </div>
         )}
