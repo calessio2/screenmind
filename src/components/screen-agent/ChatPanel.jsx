@@ -1,9 +1,28 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Plus, X, Image, Monitor } from "lucide-react";
+import { Send, Loader2, Plus, X, Image, Monitor, Youtube, Mail, Gamepad2, Sparkles, PenLine } from "lucide-react";
+
+const TYPE_ICONS = {
+  youtube: Youtube,
+  email_simulator: Mail,
+  drag_drop_game: Gamepad2,
+  signature_simulator: PenLine,
+};
+const TYPE_COLORS = {
+  youtube: "#f87171",
+  email_simulator: "#60a5fa",
+  drag_drop_game: "#34d399",
+  signature_simulator: "#a78bfa",
+};
+const TYPE_LABELS = {
+  youtube: "Video",
+  email_simulator: "Email",
+  drag_drop_game: "Juego",
+  signature_simulator: "Firma",
+};
 import { Button } from "@/components/ui/button";
 import MessageBubble from "./MessageBubble";
 
-export default function ChatPanel({ messages, onSendMessage, isLoading, isSharing, onStartSharing, onStopSharing }) {
+export default function ChatPanel({ messages, onSendMessage, isLoading, isSharing, onStartSharing, onStopSharing, interactiveContents = [], onOpenInteractive }) {
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState(null);
   const [pendingImageUrl, setPendingImageUrl] = useState(null);
@@ -129,7 +148,7 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, isSharin
               <Plus className={`w-4 h-4 transition-transform ${toolsOpen ? "rotate-45" : ""}`} />
             </button>
             {toolsOpen && (
-              <div className="absolute bottom-11 left-0 w-44 bg-zinc-900 border border-white/[0.08] rounded-xl shadow-2xl py-1 z-50">
+              <div className="absolute bottom-11 left-0 w-72 bg-zinc-900 border border-white/[0.08] rounded-xl shadow-2xl py-1 z-50 max-h-[70vh] overflow-y-auto">
                 <button
                   type="button"
                   onClick={() => { fileInputRef.current?.click(); setToolsOpen(false); }}
@@ -146,6 +165,26 @@ export default function ChatPanel({ messages, onSendMessage, isLoading, isSharin
                   <Monitor className={`w-4 h-4 ${isSharing ? "text-red-400" : "text-zinc-500"}`} />
                   {isSharing ? "Detener pantalla" : "Compartir pantalla"}
                 </button>
+                {interactiveContents.length > 0 && (
+                  <div className="mt-1 pt-1.5 border-t border-white/[0.06]">
+                    <p className="px-3 pb-1 text-[10px] uppercase tracking-wider text-zinc-600 font-medium">Actividades disponibles</p>
+                    {interactiveContents.map((c) => {
+                      const Icon = TYPE_ICONS[c.type] || Sparkles;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => { onOpenInteractive?.(c); setToolsOpen(false); }}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-zinc-300 hover:bg-white/[0.06] transition-colors text-left"
+                        >
+                          <Icon className="w-4 h-4 flex-shrink-0" style={{ color: TYPE_COLORS[c.type] || "#a1a1aa" }} />
+                          <span className="flex-1 truncate">{c.title}</span>
+                          <span className="text-[10px] text-zinc-600 capitalize">{TYPE_LABELS[c.type] || c.type}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
