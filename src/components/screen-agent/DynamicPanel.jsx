@@ -2,7 +2,7 @@ import React from "react";
 import GuideViewer from "./GuideViewer";
 import ScreenPreview from "./ScreenPreview";
 import InteractiveContentViewer from "@/components/interactive/InteractiveContentViewer";
-import { BookOpen, Monitor, Sparkles, Youtube, MousePointerClick, FileText, GitFork } from "lucide-react";
+import { BookOpen, Monitor, Sparkles, Youtube, MousePointerClick, Layers, GitFork, MessageSquare } from "lucide-react";
 
 export default function DynamicPanel({ mode, process, stepIndex, onStepChange, stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing, guidedMode, overlayStep, guidedStepNumber, isAnalyzingStep, onStartGuidedMode, onNextGuidedStep, onStopGuidedMode, interactiveContent, onSimulationEvent }) {
   if (mode === "guide" && process) {
@@ -49,9 +49,10 @@ export default function DynamicPanel({ mode, process, stepIndex, onStepChange, s
           { icon: Monitor, label: "Pantalla en vivo" },
           { icon: Youtube, label: "Videos explicativos" },
           { icon: MousePointerClick, label: "Simuladores" },
-          { icon: FileText, label: "Actividades drag and drop" },
+          { icon: Layers, label: "Interactivos" },
           { icon: Sparkles, label: "Tests" },
           { icon: GitFork, label: "Casos" },
+          { icon: MessageSquare, label: "Chat" },
         ].map((item) => (
           <div key={item.label} className="flex flex-col items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
