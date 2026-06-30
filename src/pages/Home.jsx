@@ -668,11 +668,6 @@ Si no podés identificar el elemento o el usuario ya terminó, explicalo en la i
               isSharing={isSharing}
               onStartSharing={startSharing}
               onStopSharing={stopSharing}
-              interactiveContents={interactiveContents}
-              onSelectActivity={(c) => {
-                setActiveInteractive(c);
-                setPanelMode("interactive");
-              }}
             />
           </div>
 

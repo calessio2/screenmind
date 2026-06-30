@@ -16,8 +16,7 @@
         "youtube",
         "email_simulator",
         "drag_drop_game",
-        "software_simulator",
-        "signature_simulator"
+        "software_simulator"
       ],
       "description": "Tipo de contenido interactivo"
     },
