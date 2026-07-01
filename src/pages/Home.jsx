@@ -24,10 +24,6 @@ export default function Home() {
   const [processes, setProcesses] = useState([]);
   const [interactiveContents, setInteractiveContents] = useState([]);
   const [activeInteractive, setActiveInteractive] = useState(null);
-  const [guidedMode, setGuidedMode] = useState(false);
-  const [overlayStep, setOverlayStep] = useState(null);
-  const [guidedStepNumber, setGuidedStepNumber] = useState(0);
-  const [isAnalyzingStep, setIsAnalyzingStep] = useState(false);
   const canvasRef = useRef(document.createElement("canvas"));
   const pendingPromptRef = useRef(null);
 
@@ -149,7 +145,7 @@ export default function Home() {
         setActiveInteractive(content);
         setPanelMode("interactive");
       }
-    } else if (action === "show_guide" || action === "start_guided") {
+    } else if (action === "show_guide") {
       let process = processId ? processes.find(p => p.id === processId) : null;
       if (!process && userText) {
         const lower = userText.toLowerCase();
@@ -163,15 +159,7 @@ export default function Home() {
         setActiveProcess(process);
         setActiveStepIndex(typeof stepIndex === "number" ? stepIndex : 0);
       }
-      if (action === "start_guided" && isSharing) {
-        setPanelMode("screen");
-        setGuidedMode(true);
-        setGuidedStepNumber(1);
-        setOverlayStep(null);
-        analyzeForGuidance();
-      } else {
-        setPanelMode("guide");
-      }
+      setPanelMode("guide");
     } else if (action === "request_screenshot") {
       setPanelMode("screen");
       setScreenshotRequested(true);
@@ -193,25 +181,49 @@ export default function Home() {
         file_url = uploadResult.file_url;
       }
 
+      // Auto-capture screenshot when sharing screen so the tutor can see and guide step by step
+      if (isSharing && !image) {
+        try {
+          const blob = await captureScreenshot();
+          if (blob) {
+            const screenFile = new File([blob], "screen.jpg", { type: "image/jpeg" });
+            const result = await base44.integrations.Core.UploadFile({ file: screenFile });
+            file_url = result.file_url;
+          }
+        } catch (e) {
+          // ignore capture errors
+        }
+      }
+
+      const hasVisual = !!file_url;
       const isImageMsg = text.startsWith("📎 Imagen") || (image && !text.trim().replace("📎 Imagen enviada para análisis", "").trim());
 
       const screenState = isSharing
-        ? "EL USUARIO ESTÁ COMPARTIENDO SU PANTALLA EN VIVO AHORA MISMO."
+        ? "EL USUARIO ESTÁ COMPARTIENDO SU PANTALLA EN VIVO AHORA MISMO. Tenés una captura de su pantalla actual adjunta para que puedas ver exactamente qué tiene abierto y en qué paso está."
         : "El usuario NO está compartiendo su pantalla.";
 
-      const prompt = isImageMsg
-        ? `Sos un Tutor de Adopción Digital corporativo. El usuario envió una imagen${text && !text.startsWith("📎") ? ` con el mensaje: "${text}"` : ""}. Analizala y ayudalo con lo que necesite.
+      const prompt = hasVisual
+        ? `Sos LIP, un tutor digital. ${isSharing ? "El usuario está compartiendo su pantalla y tenés una captura adjunta de lo que tiene abierto ahora mismo." : "El usuario envió una imagen."}${text && !text.startsWith("📎") ? ` Mensaje del usuario: "${text}"` : ""}
+
+Analizá la captura con atención al detalle:
+1. IDENTIFICÁ qué aplicación o sitio está abierto (Excel, Word, Google Docs, Gmail, Corel, un sistema interno, etc.)
+2. LEÉ el texto visible: títulos, botones, menús, campos, pestañas, barras de herramientas
+3. DETERMINÁ en qué punto de su tarea está el usuario
+4. DÁ instrucciones paso a paso, claras y específicas, diciendo EXACTAMENTE en qué elemento hacer clic o qué escribir
 
 Contexto previo:
 ${buildContext(messages) || "No hay contexto previo."}
 
-Procesos disponibles:
+Procesos y guías disponibles:
 ${buildProcessList()}
 
-Estado: ${screenState}
+Contenidos interactivos disponibles:
+${buildInteractiveList()}
 
-Respondé en español, de forma clara y concisa. Usá markdown con pasos numerados si corresponde. Si lo que ves coincide con un proceso disponible, usá "show_guide" o "start_guided" según corresponda.`
-        : `Sos un Tutor de Adopción Digital corporativo. Ayudás a los empleados a usar software y seguir procesos internos de la empresa.
+IMPORTANTE: Combiná tu conocimiento del software que veas abierto (Excel, Docs, Office, Corel, etc.) con las guías y procesos disponibles arriba para dar las mejores instrucciones. Para videos de YouTube, tenés acceso al contenido transcrito.
+
+Respondé en español, de forma clara y concisa. Usá markdown con pasos numerados cuando corresponda. Si lo que ves coincide con un proceso disponible, podés usar "show_guide" para mostrarlo en el panel además de explicar. Si el usuario ya completó la tarea, felicitalo y preguntá si necesita algo más.`
+        : `Sos LIP, un tutor digital. Ayudás a las personas a aprender, practicar y resolver dudas sobre software, procesos y herramientas.
 
 Procesos y guías disponibles:
 ${buildProcessList()}
@@ -227,35 +239,18 @@ ${buildContext(messages) || "No hay contexto previo."}
 Estado: ${screenState}
 
 Consulta del usuario: ${text}
-${image ? "\nNota: El usuario también adjuntó una imagen relacionada con su consulta. Analizala junto con el texto." : ""}
 
 Decidí la mejor forma de ayudar al usuario usando una de estas acciones:
 
-1. "start_guided" — Usá esta acción SIEMPRE que se cumplan AMBAS condiciones:
-   - El usuario está compartiendo su pantalla en vivo ahora mismo
-   - El usuario quiere APRENDER o HACER algo práctico (ej: "enseñame", "cómo hago", "quiero enviar", "necesito configurar")
-   Esto activará el modo overlay con realidad aumentada que le va guiando clic por clic sobre su pantalla real.
+1. "show_interactive" — Usá esta acción cuando hay un contenido interactivo disponible que coincide con la consulta (video, simulador, juego) y el usuario quiere practicar o ver un tutorial. Incluí el interactive_id exacto.
 
-2. "show_interactive" — Usá esta acción cuando:
-   - Hay un contenido interactivo disponible que coincide con la consulta del usuario (video de YouTube, simulador de email, juego de arrastrar y soltar)
-   - El usuario quiere practicar, ver un video tutorial, o hacer una simulación interactiva
-   Incluí el interactive_id exacto del contenido correspondiente.
+2. "show_guide" — Usá esta acción cuando el usuario quiere ver una guía paso a paso en el panel, o cuando hay un proceso disponible que coincide con la consulta. Incluí el process_id exacto y el step_index del paso más relevante (0-based).
 
-3. "show_guide" — Usá esta acción cuando:
-   - El usuario NO está compartiendo su pantalla y quiere ver una guía paso a paso, O
-   - El usuario quiere consultar información, ver los pasos escritos, o está en modo lectura, O
-   - El usuario pidió algo pero el contexto es de referencia/informativo, no de ejecución inmediata
+3. "request_screenshot" — Usá esta acción cuando necesitás ver la pantalla del usuario pero NO la está compartiendo, y la consulta requiere contexto visual.
 
-4. "request_screenshot" — Usá esta acción cuando:
-   - Necesitás ver la pantalla del usuario pero NO la está compartiendo, y la consulta requiere contexto visual que solo la pantalla puede dar
+4. "none" — Usá esta acción para preguntas generales, conversación, o cuando no hay proceso o contenido que mostrar. Si el usuario quiere hacer algo práctico en un software (Excel, Docs, etc.) y no está compartiendo pantalla, sugerile que comparta su pantalla para que puedas guiarlo viendo lo que hace.
 
-5. "none" — Usá esta acción cuando:
-   - La consulta no tiene relación con ningún proceso o contenido disponible
-   - Es una pregunta general, conversación, o algo que no requiere mostrar nada en el panel
-
-Si la consulta coincide con un proceso disponible, incluí el process_id exacto y el step_index del paso más relevante (0-based).
-
-Respondé en español, de forma clara y concisa, explicando qué vas a hacer. Si vas a usar "start_guided", decile al usuario que vas a guiarlo paso a paso sobre su pantalla.`;
+Respondé en español, de forma clara y concisa, explicando qué vas a hacer.`;
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt,
@@ -264,21 +259,21 @@ Respondé en español, de forma clara y concisa, explicando qué vas a hacer. Si
           type: "object",
           properties: {
             reply: { type: "string", description: "Respuesta al usuario en español" },
-            action: { type: "string", enum: ["none", "show_guide", "start_guided", "show_interactive", "request_screenshot"] },
-            process_id: { type: "string", description: "ID del proceso si action es show_guide o start_guided" },
+            action: { type: "string", enum: ["none", "show_guide", "show_interactive", "request_screenshot"] },
+            process_id: { type: "string", description: "ID del proceso si action es show_guide" },
             interactive_id: { type: "string", description: "ID del contenido interactivo si action es show_interactive" },
             step_index: { type: "number", description: "Índice del paso a mostrar (0-based)" }
           },
           required: ["reply", "action"]
         },
-        ...(isImageMsg ? { model: "claude_sonnet_4_6" } : {}),
+        ...(hasVisual ? { model: "claude_sonnet_4_6" } : {}),
       });
 
       const assistantMsg = {
         role: "assistant",
         content: response.reply,
         timestamp: new Date().toISOString(),
-        guide_ref: (response.action === "show_guide" || response.action === "start_guided") ? response.process_id : undefined,
+        guide_ref: response.action === "show_guide" ? response.process_id : undefined,
         request_screenshot: response.action === "request_screenshot",
       };
       const final = [...updated, assistantMsg];
@@ -342,21 +337,23 @@ Respondé en español, de forma clara y concisa, explicando qué vas a hacer. Si
       setScreenshotRequested(false);
 
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Sos un Tutor de Adopción Digital corporativo. El usuario compartió una captura de su pantalla. Analizala y guialo sobre lo que ves.
+        prompt: `Sos LIP, un tutor digital. El usuario compartió una captura de su pantalla. Analizala con detalle.
+
+Identificá qué aplicación está abierta (Excel, Word, Docs, Corel, etc.), leé el texto visible y determiná en qué punto de la tarea está. Después dá instrucciones paso a paso para ayudarlo a avanzar.
 
 Contexto previo:
 ${buildContext(messages) || "No hay contexto previo."}
 
-Procesos disponibles:
+Procesos y guías disponibles:
 ${buildProcessList()}
 
-Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con un proceso disponible, usá "show_guide". Si necesitás más información, usá "none".`,
+Combiná tu conocimiento del software con las guías disponibles. Respondé en español, con markdown y pasos numerados. Si la tarea ya está completa, felicitalo.`,
         file_urls: [file_url],
         response_json_schema: {
           type: "object",
           properties: {
             reply: { type: "string", description: "Respuesta al usuario en español" },
-            action: { type: "string", enum: ["none", "show_guide", "request_screenshot"] },
+            action: { type: "string", enum: ["none", "show_guide"] },
             process_id: { type: "string" },
             step_index: { type: "number" }
           },
@@ -370,7 +367,7 @@ Respondé en español, de forma clara. Si lo que ves en la pantalla coincide con
         content: response.reply,
         timestamp: new Date().toISOString(),
         guide_ref: response.action === "show_guide" ? response.process_id : undefined,
-        request_screenshot: response.action === "request_screenshot",
+        request_screenshot: false,
       };
       const final = [...updated, assistantMsg];
       setMessages(final);
@@ -512,98 +509,6 @@ Ayudalo a entender brevemente cómo corregirlos y animarlo a intentar de nuevo. 
     }
     setStream(null);
     setIsSharing(false);
-    setGuidedMode(false);
-    setOverlayStep(null);
-    setGuidedStepNumber(0);
-  };
-
-  const analyzeForGuidance = useCallback(async () => {
-    if (!stream) return;
-    setIsAnalyzingStep(true);
-    try {
-      const blob = await captureScreenshot();
-      if (!blob) return;
-      const file = new File([blob], "guided-step.jpg", { type: "image/jpeg" });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `Sos un tutor de software experto con visión computacional. El usuario está compartiendo su pantalla en vivo y necesita que lo guíes paso a paso con una capa de realidad aumentada sobre su software.
-
-=== TAREA DEL USUARIO ===
-${buildContext(messages) || "No hay contexto previo."}
-
-=== PROCESOS DE REFERENCIA ===
-${buildProcessList()}
-
-Analizá la captura de pantalla actual con atención al detalle. Necesitás:
-
-1. IDENTIFICAR qué aplicación o sitio web está abierta (Gmail, Excel, Word, un sistema interno, etc.)
-2. LEER el texto visible en pantalla: títulos, botones, menús, correos, campos de formulario, pestañas
-3. DETERMINAR en qué punto de la tarea está el usuario comparando lo que ves en pantalla con la tarea que quiere completar
-4. IDENTIFICAR el elemento exacto con el que debe interactuar ahora para avanzar al siguiente paso
-
-Luego devolvé:
-
-- instruction: instrucción específica y accionable que diga EXACTAMENTE qué hacer y en qué elemento. Ej: "Hacé clic en el botón redactar arriba a la izquierda para crear un nuevo email". NUNCA uses instrucciones genéricas como "Hacé clic aquí". Siempre mencioná el nombre o texto del elemento visible.
-- target_description: el nombre o texto EXACTO del botón, menú o elemento que el usuario debe clickear, tal como aparece en pantalla. Ej: "Botón Redactar", "Campo Para:", "Botón CCO". NUNCA dejes esto vacío ni genérico.
-- bounding_box: coordenadas del elemento como porcentajes (0-100) donde x,y es la esquina superior izquierda y width,height son el tamaño del recuadro que rodea el elemento a clickear
-- what_you_see: descripción breve de lo que identificaste en pantalla (ej: "Gmail inbox con lista de correos, botón redactar arriba")
-- is_final: true si la tarea ya está completa según lo que ves en pantalla
-
-Si no podés identificar el elemento o el usuario ya terminó, explicalo en la instrucción.`,
-        file_urls: [file_url],
-        response_json_schema: {
-          type: "object",
-          properties: {
-            instruction: { type: "string" },
-            target_description: { type: "string" },
-            what_you_see: { type: "string" },
-            bounding_box: {
-              type: "object",
-              properties: {
-                x: { type: "number" },
-                y: { type: "number" },
-                width: { type: "number" },
-                height: { type: "number" }
-              },
-              required: ["x", "y", "width", "height"]
-            },
-            is_final: { type: "boolean" }
-          },
-          required: ["instruction", "target_description", "what_you_see", "bounding_box", "is_final"]
-        },
-        model: "claude_sonnet_4_6",
-      });
-
-      setOverlayStep(response);
-    } catch (err) {
-      setOverlayStep(null);
-    } finally {
-      setIsAnalyzingStep(false);
-    }
-  }, [stream, messages, processes, captureScreenshot]);
-
-  const startGuidedMode = useCallback(() => {
-    setGuidedMode(true);
-    setGuidedStepNumber(1);
-    setOverlayStep(null);
-    analyzeForGuidance();
-  }, [analyzeForGuidance]);
-
-  const nextGuidedStep = useCallback(() => {
-    if (overlayStep?.is_final) {
-      stopGuidedMode();
-      return;
-    }
-    setGuidedStepNumber((prev) => prev + 1);
-    setOverlayStep(null);
-    analyzeForGuidance();
-  }, [overlayStep, analyzeForGuidance]);
-
-  const stopGuidedMode = () => {
-    setGuidedMode(false);
-    setOverlayStep(null);
-    setGuidedStepNumber(0);
   };
 
   return (
@@ -689,13 +594,6 @@ Si no podés identificar el elemento o el usuario ya terminó, explicalo en la i
               onStopSharing={stopSharing}
               onCapture={captureAndAnalyze}
               isCapturing={isCapturing}
-              guidedMode={guidedMode}
-              overlayStep={overlayStep}
-              guidedStepNumber={guidedStepNumber}
-              isAnalyzingStep={isAnalyzingStep}
-              onStartGuidedMode={startGuidedMode}
-              onNextGuidedStep={nextGuidedStep}
-              onStopGuidedMode={stopGuidedMode}
               interactiveContent={activeInteractive}
               onSimulationEvent={handleSimulationEvent}
             />

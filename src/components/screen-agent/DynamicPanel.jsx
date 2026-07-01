@@ -4,7 +4,7 @@ import ScreenPreview from "./ScreenPreview";
 import InteractiveContentViewer from "@/components/interactive/InteractiveContentViewer";
 import { BookOpen, Monitor, Sparkles, Youtube, MousePointerClick, Layers, GitFork, MessageSquare } from "lucide-react";
 
-export default function DynamicPanel({ mode, process, stepIndex, onStepChange, stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing, guidedMode, overlayStep, guidedStepNumber, isAnalyzingStep, onStartGuidedMode, onNextGuidedStep, onStopGuidedMode, interactiveContent, onSimulationEvent }) {
+export default function DynamicPanel({ mode, process, stepIndex, onStepChange, stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing, interactiveContent, onSimulationEvent }) {
   if (mode === "guide" && process) {
     return <GuideViewer process={process} stepIndex={stepIndex} onStepChange={onStepChange} />;
   }
@@ -23,13 +23,6 @@ export default function DynamicPanel({ mode, process, stepIndex, onStepChange, s
         onStopSharing={onStopSharing}
         onCapture={onCapture}
         isCapturing={isCapturing}
-        guidedMode={guidedMode}
-        overlayStep={overlayStep}
-        guidedStepNumber={guidedStepNumber}
-        isAnalyzingStep={isAnalyzingStep}
-        onStartGuidedMode={onStartGuidedMode}
-        onNextGuidedStep={onNextGuidedStep}
-        onStopGuidedMode={onStopGuidedMode}
       />
     );
   }

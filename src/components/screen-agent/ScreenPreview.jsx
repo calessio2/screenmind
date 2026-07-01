@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Monitor, MonitorOff, Camera, ShieldCheck, ScanLine } from "lucide-react";
+import { Monitor, MonitorOff, Camera, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ScreenOverlay from "./ScreenOverlay";
 
-export default function ScreenPreview({ stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing, guidedMode, overlayStep, guidedStepNumber, isAnalyzingStep, onStartGuidedMode, onNextGuidedStep, onStopGuidedMode }) {
+export default function ScreenPreview({ stream, isSharing, screenshotRequested, onStartSharing, onStopSharing, onCapture, isCapturing }) {
   const videoRef = useRef(null);
   const [aspectRatio, setAspectRatio] = useState(1.78);
 
@@ -64,16 +63,6 @@ export default function ScreenPreview({ stream, isSharing, screenshotRequested, 
           <Button
             size="sm"
             variant="ghost"
-            onClick={onStartGuidedMode}
-            disabled={guidedMode || isAnalyzingStep}
-            className="text-blue-400 hover:text-blue-300 hover:bg-blue-950/40 text-xs h-7 px-2"
-          >
-            <ScanLine className="w-3.5 h-3.5 mr-1" />
-            Modo guiado
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
             onClick={onCapture}
             disabled={isCapturing}
             className="text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] text-xs h-7 px-2"
@@ -102,15 +91,6 @@ export default function ScreenPreview({ stream, isSharing, screenshotRequested, 
             onLoadedMetadata={handleLoadedMetadata}
             className="w-full h-full rounded-lg object-contain"
           />
-          {guidedMode && (
-            <ScreenOverlay
-              overlayData={overlayStep}
-              stepNumber={guidedStepNumber}
-              isAnalyzing={isAnalyzingStep}
-              onNext={onNextGuidedStep}
-              onStop={onStopGuidedMode}
-            />
-          )}
         </div>
       </div>
     </div>
