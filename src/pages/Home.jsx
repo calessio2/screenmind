@@ -21,6 +21,7 @@ export default function Home() {
   const [interactiveContents, setInteractiveContents] = useState([]);
   const [activeInteractive, setActiveInteractive] = useState(null);
   const [simulationContext, setSimulationContext] = useState(null);
+  const [userGoals, setUserGoals] = useState([]);
   const canvasRef = useRef(document.createElement("canvas"));
   const pendingPromptRef = useRef(null);
 
@@ -35,10 +36,19 @@ export default function Home() {
     sendMessage: sendAgentMessage,
   } = useAgentChat("lip_tutor");
 
+  const fetchUserGoals = useCallback(() => {
+    base44.entities.Goal.filter({ status: "active" }).then((goals) => {
+      setUserGoals(goals || []);
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     base44.entities.Process.filter({ status: "active" }).then(setProcesses).catch(() => {});
     base44.entities.InteractiveContent.filter({ status: "active" }).then(setInteractiveContents).catch(() => {});
-    base44.auth.me().then(setUser).catch(() => {});
+    base44.auth.me().then((u) => {
+      setUser(u);
+      if (u?.id) fetchUserGoals();
+    }).catch(() => {});
 
     const urlParams = new URLSearchParams(window.location.search);
     const contentId = urlParams.get("content");
@@ -64,7 +74,8 @@ export default function Home() {
     setActiveInteractive(null);
     setScreenshotRequested(false);
     setSimulationContext(null);
-  }, [activeConvId]);
+    fetchUserGoals();
+  }, [activeConvId, fetchUserGoals]);
 
   // Send pending prompt when conversation is created
   useEffect(() => {
@@ -185,11 +196,25 @@ export default function Home() {
     return "";
   }, [panelMode, activeInteractive, activeProcess, activeStepIndex, isSharing, simulationContext]);
 
+  const buildGoalsContext = useCallback(() => {
+    if (!userGoals.length || !user?.id) return "";
+    const goalsSummary = userGoals
+      .filter(g => g.assigned_to_id === user.id)
+      .map(g => {
+        const totalSteps = g.steps?.length || 0;
+        const completedSteps = g.steps?.filter(s => s.completed)?.length || 0;
+        const pendingSteps = g.steps?.filter(s => !s.completed)?.map(s => s.title).join(", ") || "sin pasos definidos";
+        return `- "${g.title}" (categoría: ${g.category || "general"}, progreso: ${completedSteps}/${totalSteps} hitos, vence: ${g.due_date || "sin fecha"}). Pendiente: ${pendingSteps}`;
+      }).join("\n");
+    if (!goalsSummary) return "";
+    return `[OBJETIVOS DEL USUARIO: El usuario tiene estos objetivos de aprendizaje activos:\n${goalsSummary}\nUsá esta info para contextualizar respuestas. Si el usuario pregunta por "el plan", sus objetivos, o qué le toca aprender, referite a estos datos.]\n\n`;
+  }, [userGoals, user]);
+
   const handleSendMessage = async (text, image) => {
     if (!activeConvId) return;
     let fileUrls = null;
 
-    const contextPrefix = buildContextPrefix();
+    const contextPrefix = buildGoalsContext() + buildContextPrefix();
 
     if (image) {
       try {

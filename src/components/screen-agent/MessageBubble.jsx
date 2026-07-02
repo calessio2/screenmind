@@ -107,7 +107,7 @@ function FunctionDisplay({ toolCall }) {
 
 export default function MessageBubble({ message }) {
   const isUser = message.role === "user";
-  const cleanContent = (message.content || "").replace(/\[(?:CONTENT|PROCESS|REQUEST_SCREEN|CONTEXTO):?[^\]]*\]/g, "").trim();
+  const cleanContent = (message.content || "").replace(/\[(?:CONTENT|PROCESS|REQUEST_SCREEN|CONTEXTO|OBJETIVOS DEL USUARIO):?[^\]]*\]/gs, "").trim();
 
   return (
     <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
