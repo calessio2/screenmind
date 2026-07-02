@@ -148,19 +148,36 @@ export default function Home() {
 
   const buildContextPrefix = useCallback(() => {
     if (panelMode === "interactive" && activeInteractive) {
-      let ctx = `[CONTEXTO: El usuario tiene abierto el contenido "${activeInteractive.title}" (tipo: ${activeInteractive.type}`;
-      if (activeInteractive.type === "email_simulator" && simulationContext) {
-        const target = activeInteractive.config?.email_scenario?.target_action || "completar el email";
+      const c = activeInteractive;
+      let ctx = `[CONTEXTO: El usuario tiene abierto el contenido "${c.title}" (tipo: ${c.type}`;
+      if (c.description) ctx += `. Descripción: ${c.description}`;
+      if (c.software) ctx += `. Software: ${c.software}`;
+      if (c.type === "email_simulator" && simulationContext) {
+        const target = c.config?.email_scenario?.target_action || "completar el email";
         const stepsStr = simulationContext.steps?.map(s => `${s.done ? "✓" : "○"} ${s.label}`).join("; ");
         ctx += `. Tarea: ${target}. Progreso: ${simulationContext.completed}/${simulationContext.total}. Pasos: ${stepsStr}]`;
+      } else if (c.type === "youtube") {
+        const ytId = c.config?.youtube_id || "";
+        ctx += `. Video de YouTube${ytId ? ` (${ytId})` : ""}${c.transcript ? ". Transcripción disponible en el campo transcript del contenido." : ""}]`;
+      } else if (c.type === "drag_drop_game") {
+        const items = c.config?.game_items?.length || 0;
+        const zones = c.config?.zones?.length || 0;
+        ctx += `. Juego de clasificación con ${items} elementos y ${zones} categorías.]`;
+      } else if (c.type === "signature_simulator") {
+        const target = c.config?.email_scenario?.target_action || "configurar una firma";
+        ctx += `. Tarea: ${target}]`;
       } else {
-        ctx += `)]`;
+        ctx += `]`;
       }
       return ctx + "\n\n";
     }
     if (panelMode === "guide" && activeProcess) {
       const total = activeProcess.steps?.length || 0;
-      return `[CONTEXTO: El usuario está viendo la guía "${activeProcess.title}", paso ${activeStepIndex + 1} de ${total}.]\n\n`;
+      const step = activeProcess.steps?.[activeStepIndex];
+      let ctx = `[CONTEXTO: El usuario está viendo la guía "${activeProcess.title}", paso ${activeStepIndex + 1} de ${total}`;
+      if (step) ctx += `. Paso actual: ${step.title}. ${step.description || ""}`;
+      ctx += `]`;
+      return ctx + "\n\n";
     }
     if (panelMode === "screen" && isSharing) {
       return `[CONTEXTO: El usuario está compartiendo su pantalla.]\n\n`;
