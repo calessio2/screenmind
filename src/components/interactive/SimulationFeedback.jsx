@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import confetti from "canvas-confetti";
 import { XCircle, RotateCcw, Trophy, Star } from "lucide-react";
 
-export default function SimulationFeedback({ type, errors, onComplete, onRetry, onFinish }) {
+export default function SimulationFeedback({ type, errors, onComplete, onRetry, onFinish, retryLabel = "Volver a hacer", finishLabel = "Terminar ejercicio" }) {
   const firedRef = useRef(false);
 
   useEffect(() => {
@@ -49,13 +49,13 @@ export default function SimulationFeedback({ type, errors, onComplete, onRetry, 
                 className="inline-flex items-center gap-2 bg-white/[0.08] hover:bg-white/[0.14] text-zinc-200 font-medium px-6 py-2.5 rounded-xl transition-colors text-sm border border-white/[0.08]"
               >
                 <RotateCcw className="w-4 h-4" />
-                Volver a hacer
+                {retryLabel}
               </button>
               <button
                 onClick={onFinish}
                 className="bg-green-500 hover:bg-green-400 text-white font-medium px-8 py-2.5 rounded-xl transition-colors text-sm"
               >
-                Terminar
+                {finishLabel}
               </button>
             </div>
           ) : (

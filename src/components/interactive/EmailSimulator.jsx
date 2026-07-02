@@ -93,6 +93,11 @@ export default function EmailSimulator({ content, onProgress }) {
     setShowCCO(false);
   };
 
+  const handleFinish = () => {
+    setFeedback(null);
+    if (onProgress) onProgress({ type: "finish" });
+  };
+
   if (!started) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-zinc-950 p-6">
@@ -216,6 +221,7 @@ export default function EmailSimulator({ content, onProgress }) {
           errors={feedback.errors}
           onRetry={handleRetry}
           onComplete={handleComplete}
+          onFinish={handleFinish}
         />
       )}
     </div>
