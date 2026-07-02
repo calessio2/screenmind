@@ -123,20 +123,6 @@ export default function Home() {
         }
       }
     }
-    // Fallback similar para guías
-    if (!processMatch && processes.length) {
-      const intent = /\b(abro|abrir|abr[ií]|lanzo|inici[aá]|empez[aá]|te lo abro)\b/i.test(content);
-      if (intent) {
-        const lower = content.toLowerCase();
-        const matched = processes.find(p => p.title && lower.includes(p.title.toLowerCase()));
-        if (matched) {
-          setActiveProcess(matched);
-          setActiveStepIndex(0);
-          setPanelMode("guide");
-        }
-      }
-    }
-
     const processMatch = content.match(/\[PROCESS:([^\]]+)\]/);
     if (processMatch) {
       const processId = processMatch[1];
@@ -153,6 +139,20 @@ export default function Home() {
             setPanelMode("guide");
           }
         }).catch(() => {});
+      }
+    }
+
+    // Fallback similar para guías
+    if (!processMatch && processes.length) {
+      const intent = /\b(abro|abrir|abr[ií]|lanzo|inici[aá]|empez[aá]|te lo abro)\b/i.test(content);
+      if (intent) {
+        const lower = content.toLowerCase();
+        const matched = processes.find(p => p.title && lower.includes(p.title.toLowerCase()));
+        if (matched) {
+          setActiveProcess(matched);
+          setActiveStepIndex(0);
+          setPanelMode("guide");
+        }
       }
     }
 
