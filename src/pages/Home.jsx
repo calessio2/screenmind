@@ -83,20 +83,37 @@ export default function Home() {
 
     const contentMatch = content.match(/\[CONTENT:([^\]]+)\]/);
     if (contentMatch) {
-      const contentItem = interactiveContents.find(c => c.id === contentMatch[1]);
+      const contentId = contentMatch[1];
+      const contentItem = interactiveContents.find(c => c.id === contentId);
       if (contentItem) {
         setActiveInteractive(contentItem);
         setPanelMode("interactive");
+      } else {
+        base44.entities.InteractiveContent.get(contentId).then((item) => {
+          if (item) {
+            setActiveInteractive(item);
+            setPanelMode("interactive");
+          }
+        }).catch(() => {});
       }
     }
 
     const processMatch = content.match(/\[PROCESS:([^\]]+)\]/);
     if (processMatch) {
-      const process = processes.find(p => p.id === processMatch[1]);
+      const processId = processMatch[1];
+      const process = processes.find(p => p.id === processId);
       if (process) {
         setActiveProcess(process);
         setActiveStepIndex(0);
         setPanelMode("guide");
+      } else {
+        base44.entities.Process.get(processId).then((item) => {
+          if (item) {
+            setActiveProcess(item);
+            setActiveStepIndex(0);
+            setPanelMode("guide");
+          }
+        }).catch(() => {});
       }
     }
 
