@@ -29,7 +29,7 @@ export default function SignatureSimulator({ content, onProgress }) {
     label: `Completá el campo «${f.label}»`,
     done: f.value.trim().length > 0,
   }));
-  steps.push({ label: "Revisá la vista previa y enviá la firma", done: false });
+  steps.push({ label: "Enviá la firma", done: false });
 
   const completedSteps = steps.map((s, i) => (s.done ? i : -1)).filter((i) => i >= 0);
 
