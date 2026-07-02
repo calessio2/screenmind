@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Youtube, Mail, MousePointerClick, Trash2, Search, X } from "lucide-react";
+import { Plus, Youtube, Mail, MousePointerClick, Trash2, Search, X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import InteractiveContentForm from "@/components/interactive/InteractiveContentForm";
+import { useNavigate } from "react-router-dom";
 
 const typeConfig = {
   youtube: { label: "Video YouTube", icon: Youtube, color: "text-red-400", bg: "bg-red-500/10" },
@@ -17,6 +18,7 @@ export default function Library() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   const fetchContents = async () => {
     setLoading(true);
@@ -57,9 +59,18 @@ export default function Library() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Biblioteca de Contenidos</h1>
-            <p className="text-zinc-500 text-sm mt-1">Experiencias interactivas que el tutor puede lanzar</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/")}
+              className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-zinc-300 hover:bg-white/[0.08] transition-colors"
+              title="Volver"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">Biblioteca de Contenidos</h1>
+              <p className="text-zinc-500 text-sm mt-1">Experiencias interactivas que el tutor puede lanzar</p>
+            </div>
           </div>
           <Button
             onClick={() => { setEditing(null); setShowForm(true); }}
