@@ -111,6 +111,32 @@ export default function Home() {
       }
     }
 
+    // Fallback: si el agente olvidó el tag [CONTENT:id] pero mencionó un título con intención de abrir
+    if (!contentMatch && interactiveContents.length) {
+      const intent = /\b(abro|abrir|abr[ií]|lanzo|inici[aá]|empez[aá]|practic[aá]|te lo abro)\b/i.test(content);
+      if (intent) {
+        const lower = content.toLowerCase();
+        const matched = interactiveContents.find(c => c.title && lower.includes(c.title.toLowerCase()));
+        if (matched) {
+          setActiveInteractive(matched);
+          setPanelMode("interactive");
+        }
+      }
+    }
+    // Fallback similar para guías
+    if (!processMatch && processes.length) {
+      const intent = /\b(abro|abrir|abr[ií]|lanzo|inici[aá]|empez[aá]|te lo abro)\b/i.test(content);
+      if (intent) {
+        const lower = content.toLowerCase();
+        const matched = processes.find(p => p.title && lower.includes(p.title.toLowerCase()));
+        if (matched) {
+          setActiveProcess(matched);
+          setActiveStepIndex(0);
+          setPanelMode("guide");
+        }
+      }
+    }
+
     const processMatch = content.match(/\[PROCESS:([^\]]+)\]/);
     if (processMatch) {
       const processId = processMatch[1];
