@@ -36,8 +36,11 @@ export function useAgentChat(agentName) {
     }).catch(() => {});
 
     const unsubscribe = base44.agents.subscribeToConversation(activeConvId, (data) => {
-      setMessages(data.messages || []);
-      setIsLoading(false);
+      const msgs = data.messages || [];
+      setMessages(msgs);
+      if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
+        setIsLoading(false);
+      }
     });
 
     return () => unsubscribe();
@@ -85,6 +88,8 @@ export function useAgentChat(agentName) {
         content: text,
         ...(fileUrls ? { file_urls: fileUrls } : {})
       });
+      // Safety: clear loading after addMessage resolves (in case subscription already delivered the response)
+      setIsLoading(false);
     } catch (e) {
       setIsLoading(false);
     }
