@@ -20,6 +20,7 @@ export default function Home() {
   const [processes, setProcesses] = useState([]);
   const [interactiveContents, setInteractiveContents] = useState([]);
   const [activeInteractive, setActiveInteractive] = useState(null);
+  const [simulationContext, setSimulationContext] = useState(null);
   const canvasRef = useRef(document.createElement("canvas"));
   const pendingPromptRef = useRef(null);
 
@@ -62,6 +63,7 @@ export default function Home() {
     setActiveProcess(null);
     setActiveInteractive(null);
     setScreenshotRequested(false);
+    setSimulationContext(null);
   }, [activeConvId]);
 
   // Send pending prompt when conversation is created
@@ -144,9 +146,33 @@ export default function Home() {
     });
   }, [stream]);
 
+  const buildContextPrefix = useCallback(() => {
+    if (panelMode === "interactive" && activeInteractive) {
+      let ctx = `[CONTEXTO: El usuario tiene abierto el contenido "${activeInteractive.title}" (tipo: ${activeInteractive.type}`;
+      if (activeInteractive.type === "email_simulator" && simulationContext) {
+        const target = activeInteractive.config?.email_scenario?.target_action || "completar el email";
+        const stepsStr = simulationContext.steps?.map(s => `${s.done ? "✓" : "○"} ${s.label}`).join("; ");
+        ctx += `. Tarea: ${target}. Progreso: ${simulationContext.completed}/${simulationContext.total}. Pasos: ${stepsStr}]`;
+      } else {
+        ctx += `)]`;
+      }
+      return ctx + "\n\n";
+    }
+    if (panelMode === "guide" && activeProcess) {
+      const total = activeProcess.steps?.length || 0;
+      return `[CONTEXTO: El usuario está viendo la guía "${activeProcess.title}", paso ${activeStepIndex + 1} de ${total}.]\n\n`;
+    }
+    if (panelMode === "screen" && isSharing) {
+      return `[CONTEXTO: El usuario está compartiendo su pantalla.]\n\n`;
+    }
+    return "";
+  }, [panelMode, activeInteractive, activeProcess, activeStepIndex, isSharing, simulationContext]);
+
   const handleSendMessage = async (text, image) => {
     if (!activeConvId) return;
     let fileUrls = null;
+
+    const contextPrefix = buildContextPrefix();
 
     if (image) {
       try {
@@ -166,7 +192,7 @@ export default function Home() {
       } catch (e) {}
     }
 
-    await sendAgentMessage(text, fileUrls);
+    await sendAgentMessage(contextPrefix + text, fileUrls);
   };
 
   const handleManualCapture = useCallback(async () => {
@@ -185,8 +211,13 @@ export default function Home() {
   }, [activeConvId, stream, captureScreenshot, sendAgentMessage]);
 
   const handleSimulationEvent = useCallback(async (event) => {
+    if (event.type === "progress") {
+      setSimulationContext(event);
+      return;
+    }
     if (!activeConvId) return;
     if (event.type === "success") {
+      setSimulationContext(null);
       await sendAgentMessage("✅ Completé la simulación correctamente. Actualizá mi progreso en los objetivos correspondientes.");
     } else if (event.type === "error") {
       const errorList = event.errors.map(e => `- ${e}`).join("\n");
