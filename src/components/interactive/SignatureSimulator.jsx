@@ -72,6 +72,11 @@ export default function SignatureSimulator({ content, onProgress }) {
     setName(""); setRole(""); setPhone(""); setEmail(""); setCompany("");
   };
 
+  const handleFinish = () => {
+    setFeedback(null);
+    if (onProgress) onProgress({ type: "finish" });
+  };
+
   if (!started) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-zinc-950 p-6">
@@ -160,7 +165,7 @@ export default function SignatureSimulator({ content, onProgress }) {
               className="mt-5 w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium py-2.5 rounded-lg transition-colors"
             >
               <Check className="w-4 h-4" />
-              Guardar firma
+              Enviar firma
             </button>
           </div>
         </div>
@@ -178,6 +183,7 @@ export default function SignatureSimulator({ content, onProgress }) {
           errors={feedback.errors}
           onRetry={handleRetry}
           onComplete={handleComplete}
+          onFinish={handleFinish}
         />
       )}
     </div>

@@ -257,6 +257,12 @@ export default function Home() {
       setSimulationContext(event);
       return;
     }
+    if (event.type === "finish") {
+      setPanelMode("default");
+      setActiveInteractive(null);
+      setSimulationContext(null);
+      return;
+    }
     if (!activeConvId) return;
     if (event.type === "success") {
       setSimulationContext(null);

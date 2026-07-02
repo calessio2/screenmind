@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import confetti from "canvas-confetti";
 import { XCircle, RotateCcw, Trophy, Star } from "lucide-react";
 
-export default function SimulationFeedback({ type, errors, onComplete, onRetry }) {
+export default function SimulationFeedback({ type, errors, onComplete, onRetry, onFinish }) {
   const firedRef = useRef(false);
 
   useEffect(() => {
@@ -42,12 +42,30 @@ export default function SimulationFeedback({ type, errors, onComplete, onRetry }
           <p className="text-zinc-400 text-sm mb-8 leading-relaxed">
             Completaste la tarea correctamente. ¡Seguí practicando para seguir mejorando!
           </p>
-          <button
-            onClick={onComplete}
-            className="bg-green-500 hover:bg-green-400 text-white font-medium px-8 py-3 rounded-xl transition-colors text-sm"
-          >
-            Continuar
-          </button>
+          {onFinish ? (
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={onComplete}
+                className="inline-flex items-center gap-2 bg-white/[0.08] hover:bg-white/[0.14] text-zinc-200 font-medium px-6 py-2.5 rounded-xl transition-colors text-sm border border-white/[0.08]"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Volver a hacer
+              </button>
+              <button
+                onClick={onFinish}
+                className="bg-green-500 hover:bg-green-400 text-white font-medium px-8 py-2.5 rounded-xl transition-colors text-sm"
+              >
+                Terminar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onComplete}
+              className="bg-green-500 hover:bg-green-400 text-white font-medium px-8 py-3 rounded-xl transition-colors text-sm"
+            >
+              Continuar
+            </button>
+          )}
         </div>
       </div>
     );
