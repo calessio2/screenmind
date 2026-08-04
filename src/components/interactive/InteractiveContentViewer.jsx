@@ -5,7 +5,7 @@ import DragDropGame from "./DragDropGame";
 import SignatureSimulator from "./SignatureSimulator";
 import { Sparkles } from "lucide-react";
 
-export default function InteractiveContentViewer({ content, onProgress }) {
+export default function InteractiveContentViewer({ content, activeSection, onProgress }) {
   if (!content) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-zinc-950 p-6">
@@ -21,7 +21,7 @@ export default function InteractiveContentViewer({ content, onProgress }) {
 
   switch (content.type) {
     case "youtube":
-      return <YoutubeEmbed config={content.config} />;
+      return <YoutubeEmbed config={content.config} activeSection={activeSection} />;
     case "email_simulator":
       return <EmailSimulator content={content} onProgress={onProgress} />;
     case "drag_drop_game":

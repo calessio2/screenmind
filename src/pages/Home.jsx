@@ -20,6 +20,7 @@ export default function Home() {
   const [processes, setProcesses] = useState([]);
   const [interactiveContents, setInteractiveContents] = useState([]);
   const [activeInteractive, setActiveInteractive] = useState(null);
+  const [activeSection, setActiveSection] = useState(null);
   const [simulationContext, setSimulationContext] = useState(null);
   const [userGoals, setUserGoals] = useState([]);
   const canvasRef = useRef(document.createElement("canvas"));
@@ -72,6 +73,7 @@ export default function Home() {
     setPanelMode("default");
     setActiveProcess(null);
     setActiveInteractive(null);
+    setActiveSection(null);
     setScreenshotRequested(false);
     setSimulationContext(null);
     fetchUserGoals();
@@ -96,15 +98,19 @@ export default function Home() {
 
     const contentMatch = content.match(/\[CONTENT:([^\]]+)\]/);
     if (contentMatch) {
-      const contentId = contentMatch[1];
+      const rawId = contentMatch[1];
+      const [contentId, sectionStr] = rawId.split('#');
+      const sectionIndex = sectionStr ? parseInt(sectionStr, 10) : null;
       const contentItem = interactiveContents.find(c => c.id === contentId);
       if (contentItem) {
         setActiveInteractive(contentItem);
+        setActiveSection(sectionIndex);
         setPanelMode("interactive");
       } else {
         base44.entities.InteractiveContent.get(contentId).then((item) => {
           if (item) {
             setActiveInteractive(item);
+            setActiveSection(sectionIndex);
             setPanelMode("interactive");
           }
         }).catch(() => {});
@@ -119,6 +125,7 @@ export default function Home() {
         const matched = interactiveContents.find(c => c.title && lower.includes(c.title.toLowerCase()));
         if (matched) {
           setActiveInteractive(matched);
+          setActiveSection(null);
           setPanelMode("interactive");
         }
       }
@@ -394,6 +401,7 @@ export default function Home() {
               interactiveContents={interactiveContents}
               onOpenInteractive={(c) => {
                 setActiveInteractive(c);
+                setActiveSection(null);
                 setPanelMode("interactive");
               }}
             />
@@ -413,6 +421,7 @@ export default function Home() {
               onCapture={handleManualCapture}
               isCapturing={isCapturing}
               interactiveContent={activeInteractive}
+              activeSection={activeSection}
               onSimulationEvent={handleSimulationEvent}
             />
           </div>
