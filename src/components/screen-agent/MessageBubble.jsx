@@ -130,9 +130,7 @@ export default function MessageBubble({ message }) {
             </ReactMarkdown>
           )
         )}
-        {message.tool_calls?.map((toolCall, idx) => (
-          <FunctionDisplay key={idx} toolCall={toolCall} />
-        ))}
+
       </div>
     </div>
   );
