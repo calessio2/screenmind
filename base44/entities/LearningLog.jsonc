@@ -1,0 +1,58 @@
+{
+  "name": "LearningLog",
+  "type": "object",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "Tema o concepto que el usuario busc\u00f3 aprender"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categor\u00eda del tema (ej: Email, Ofim\u00e1tica, Geclisa, General)"
+    },
+    "software": {
+      "type": "string",
+      "description": "Software relacionado (ej: Gmail, Excel, LiveConnect, Geclisa)"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "chat",
+        "video",
+        "guide",
+        "simulator"
+      ],
+      "default": "chat",
+      "description": "Origen del aprendizaje: consulta en chat, video, gu\u00eda o simulador"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Resumen breve de lo que aprendi\u00f3 el usuario sobre el tema"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "learning",
+        "practiced",
+        "mastered"
+      ],
+      "default": "learning",
+      "description": "Nivel de dominio: en aprendizaje, practicado, dominado"
+    }
+  },
+  "required": [
+    "topic"
+  ],
+  "rls": {
+    "create": null,
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

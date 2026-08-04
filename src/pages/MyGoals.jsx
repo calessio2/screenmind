@@ -1,8 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link, useNavigate } from "react-router-dom";
-import { Target, CheckCircle2, Circle, ChevronDown, ChevronRight, Calendar, TrendingUp, ArrowLeft, Award, BarChart3, PlayCircle, BookOpen, Gamepad2 } from "lucide-react";
+import { Target, CheckCircle2, Circle, ChevronDown, ChevronRight, Calendar, TrendingUp, ArrowLeft, Award, BarChart3, PlayCircle, BookOpen, Gamepad2, GraduationCap, MessageSquare, Youtube, BookMarked, MousePointerClick } from "lucide-react";
 import UsageStats from "@/components/screen-agent/UsageStats";
+
+const SOURCE_ICON = {
+  chat: MessageSquare,
+  video: Youtube,
+  guide: BookMarked,
+  simulator: MousePointerClick,
+};
+
+const SOURCE_LABEL = {
+  chat: "Consulta",
+  video: "Video",
+  guide: "Guía",
+  simulator: "Simulador",
+};
+
+const STATUS_STYLE = {
+  learning: { label: "Aprendiendo", color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
+  practiced: { label: "Practicado", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
+  mastered: { label: "Dominado", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+};
 
 const ACTION_BY_TYPE = {
   youtube: { label: "Aprender", icon: BookOpen },
@@ -87,7 +107,12 @@ export default function MyGoals() {
   const [expandedId, setExpandedId] = useState(null);
   const [toggling, setToggling] = useState(null);
   const [interactiveContents, setInteractiveContents] = useState([]);
+  const [learningLogs, setLearningLogs] = useState([]);
   const navigate = useNavigate();
+
+  const fetchLearningLogs = (userId) => {
+    base44.entities.LearningLog.filter({}, "-created_date", 100).then(setLearningLogs).catch(() => {});
+  };
 
   useEffect(() => {
     base44.entities.InteractiveContent.filter({ status: "active" }).then(setInteractiveContents).catch(() => {});
@@ -95,6 +120,7 @@ export default function MyGoals() {
       setUser(u);
       base44.entities.Goal.filter({ assigned_to_id: u.id, status: "active" }, "-created_date", 50).then(g => {
         setGoals(g);
+        fetchLearningLogs(u.id);
         setLoading(false);
       }).catch(() => setLoading(false));
     }).catch(() => setLoading(false));
@@ -185,6 +211,41 @@ export default function MyGoals() {
                 <Award className="w-3 h-3 text-emerald-500" />
                 {completedGoals.length} completados
               </span>
+            </div>
+          </div>
+        )}
+
+        {learningLogs.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <GraduationCap className="w-4 h-4 text-zinc-500" />
+              <h2 className="text-sm font-medium text-zinc-300">Temas que estoy aprendiendo</h2>
+              <span className="text-[10px] text-zinc-600 ml-auto">{learningLogs.length} temas</span>
+            </div>
+            <div className="space-y-2">
+              {learningLogs.map(log => {
+                const SourceIcon = SOURCE_ICON[log.source] || MessageSquare;
+                const statusInfo = STATUS_STYLE[log.status] || STATUS_STYLE.learning;
+                return (
+                  <div key={log.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.04] transition-colors">
+                    <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                      <SourceIcon className="w-3.5 h-3.5 text-zinc-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-zinc-300 truncate">{log.topic}</p>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full border ${statusInfo.color} flex-shrink-0`}>{statusInfo.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {log.software && <span className="text-[10px] text-zinc-600">{log.software}</span>}
+                        {log.category && <span className="text-[10px] text-zinc-600">· {log.category}</span>}
+                        <span className="text-[10px] text-zinc-700">· {SOURCE_LABEL[log.source] || "Consulta"}</span>
+                      </div>
+                      {log.notes && <p className="text-[11px] text-zinc-600 mt-1 line-clamp-1">{log.notes}</p>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
